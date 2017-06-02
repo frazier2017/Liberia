@@ -261,90 +261,49 @@ ggsave("comparison.png",comparison,width = 20, height = 18, dpi = 150)
 
 #### V3. SURVEY DATA ####
 
-#CREATE SPATIAL POLYGON DATAFRAMES, CORRECT DATA AND FORTIFY
-#counties <- getData("GADM", country="LBR", level=1)
-
-africa <- readOGR(dsn="shapefiles", layer="africa", stringsAsFactors=FALSE, verbose=FALSE)
-country <- readOGR(dsn="shapefiles", layer="liberia_revised", stringsAsFactors=FALSE, verbose=FALSE)
-counties <- readOGR(dsn="shapefiles", layer="counties", stringsAsFactors=FALSE, verbose=FALSE)
-districts <- readOGR(dsn="shapefiles", layer="districts", stringsAsFactors=FALSE, verbose=FALSE)
-clans <- readOGR(dsn="shapefiles", layer="clans", stringsAsFactors=FALSE, verbose=FALSE)
-
-proj4string(counties)
-
-country <- spTransform(country, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-counties <- spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-districts <- spTransform(districts, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-clans <- spTransform(clans, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-
-#modify africa data frame
-africa <- subset(africa, Land_Type == "Primary land")
-#africa <- subset(africa, COUNTRY == "Sierra Leone" | COUNTRY == "Guinea" | COUNTRY == "Côte d'Ivoire")
-
-#correct Number of Households in Bomi County
-#bomi <- subset(districts@data, FIRST_CCNA == "Bomi")
-#counties@data[1,7] <- sum(bomi$HHOLDS)
-
-###correct data
-counties@data$SUM_HH[1]<-20508
-districts@data[which(districts@data$FIRST_CCNA=="Bomi"),]$HHOLDS<-districts@data[which(districts@data$FIRST_CCNA=="Bomi"),]$TOTAL/(counties@data$SUM_TOTAL[1]/counties@data$SUM_HH[1])
-clans@data[which(clans@data$FIRST_CCNA=="Bomi"),]$SUM_HH<-clans@data[which(clans@data$FIRST_CCNA=="Bomi"),]$SUM_TOTAL/(counties@data$SUM_TOTAL[1]/counties@data$SUM_HH[1])
-clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_HH[29]<-clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_TOTAL[29]/mean(clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_TOTAL[c(1:28,30:45)]/clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_HH[c(1:28,30:45)])
-
-
-africa_f <- fortify(africa)
-country_f <- fortify(country)
-counties_f <- fortify(counties)
-districts_f <- fortify(districts)
-clans_f <- fortify(clans)
+### LABELING ###
 
 #COUNTRIES
 #create labels & join data to data frame
-country_names <- africa@data$COUNTRY
-country_cpts <- gCentroid(africa, byid=TRUE)
-country_labs <- cbind.data.frame(country_names, country_cpts@coords[,1], country_cpts@coords[,2])
-names(country_labs) <- c("country","x","y")
-country_labs[1,2] <- -7.75 #modify Cote d'Ivore location
-country_labs[1,3] <- 6.75 
-country_labs[2,2] <- -9.00 #modify Guinea location
-country_labs[2,3] <- 8.4 
-country_labs[3,2] <- -11.15 #modify Guinea location
-country_labs[3,3] <- 8.00 
-
-#COUNTIES
-#create labels & join data to data frame
-county_names <- counties@data$CCNAME
-county_cpts <- gCentroid(counties, byid=TRUE)
-county_labs <- cbind.data.frame(county_names, county_cpts@coords[,1], county_cpts@coords[,2])
-names(county_labs) <- c("county","x","y")
-county_labs[9,3] <- 6.65 # Margibi county location
-county_labs[9,2] <- -10.25
-
-counties_d <- counties@data[,c(2,4:7)]
-counties_d$id <- row.names(counties)
-counties_f <- left_join(x = counties_f, y = counties_d, by = c("id" = "id"))
-
-#DISTRICTS
-#create labels & join data to data frame
-district_names <- districts@data$DNAME
-district_cpts <- gCentroid(districts, byid=TRUE)
-district_labs <- cbind.data.frame(district_names, district_cpts@coords[,1], district_cpts@coords[,2])
-names(district_labs) <- c("district","x","y")
-
-districts_d <- districts@data[,c(1,7:10)]
-districts_d$id <- row.names(districts)
-districts_f <- left_join(x = districts_f, y = districts_d, by = c("id" = "id"))
-
-#CLANS
-#create labels & join data to data frame
-clan_names <- clans@data$CLNAME
-clan_cpts <- gCentroid(clans, byid=TRUE)
-clan_labs <- cbind.data.frame(clan_names, clan_cpts@coords[,1], clan_cpts@coords[,2])
-names(clan_labs) <- c("clan","x","y")
-
-clans_d <- clans@data[,c(1,5:8)]
-clans_d$id <- row.names(clans)
-clans_f <- left_join(x = clans_f, y = clans_d, by = c("id" = "id"))
+# country_names <- africa@data$COUNTRY
+# country_cpts <- gCentroid(africa, byid=TRUE)
+# country_labs <- cbind.data.frame(country_names, country_cpts@coords[,1], country_cpts@coords[,2])
+# names(country_labs) <- c("country","x","y")
+# country_labs[1,2] <- -7.75 #modify Cote d'Ivore location
+# country_labs[1,3] <- 6.75 
+# country_labs[2,2] <- -9.00 #modify Guinea location
+# country_labs[2,3] <- 8.4 
+# country_labs[3,2] <- -11.15 #modify Guinea location
+# country_labs[3,3] <- 8.00 
+# 
+# county_names <- counties@data$CCNAME
+# county_cpts <- gCentroid(counties, byid=TRUE)
+# county_labs <- cbind.data.frame(county_names, county_cpts@coords[,1], county_cpts@coords[,2])
+# names(county_labs) <- c("county","x","y")
+# county_labs[9,3] <- 6.65 # Margibi county location
+# county_labs[9,2] <- -10.25
+# 
+# counties_d <- counties@data[,c(2,4:7)]
+# counties_d$id <- row.names(counties)
+# counties_f <- left_join(x = counties_f, y = counties_d, by = c("id" = "id"))
+# 
+# district_names <- districts@data$DNAME
+# district_cpts <- gCentroid(districts, byid=TRUE)
+# district_labs <- cbind.data.frame(district_names, district_cpts@coords[,1], district_cpts@coords[,2])
+# names(district_labs) <- c("district","x","y")
+# 
+# districts_d <- districts@data[,c(1,7:10)]
+# districts_d$id <- row.names(districts)
+# districts_f <- left_join(x = districts_f, y = districts_d, by = c("id" = "id"))
+# 
+# clan_names <- clans@data$CLNAME
+# clan_cpts <- gCentroid(clans, byid=TRUE)
+# clan_labs <- cbind.data.frame(clan_names, clan_cpts@coords[,1], clan_cpts@coords[,2])
+# names(clan_labs) <- c("clan","x","y")
+# 
+# clans_d <- clans@data[,c(1,5:8)]
+# clans_d$id <- row.names(clans)
+# clans_f <- left_join(x = clans_f, y = clans_d, by = c("id" = "id"))
 
 
 # LOAD CWIQ10 DATA AND JOIN TO GOV SUBDIVISION CENTER POINTS
