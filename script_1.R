@@ -1,4 +1,4 @@
-#Raster: Crop, Raster, Stack...Look into Raster Functions KDE in a different package
+#Raster: Crop, Raster, Stack...Look into Raster Functions KDE in a different package; also look up set up github in RStudio
 rm(list=ls())
 setwd("~/GitHub/Liberia")
 
