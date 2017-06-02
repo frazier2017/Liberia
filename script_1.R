@@ -79,9 +79,9 @@ lbr_3_f<-fortify(lbr_3)
   
   ### MAKE MAPS ###
   map4<-ggplot()+
-    geom_map(data=counties_f,map=counties_f,aes(x=long,y=lat,map_id=id,fill=log(SUM_TOTAL)))+
+    geom_map(data=lbr_1_f_shp,map=lbr_1_f_shp,aes(x=long,y=lat,map_id=id,fill=log(SUM_TOTAL)))+
     scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
-    geom_map(data=counties_f,map=counties_f,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.2)+
+    geom_map(data=lbr_1_f_shp,map=lbr_1_f_shp,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.2)+
     theme(text = element_text(color = "white"),
           rect = element_rect(fill = "grey35", color = "grey35"),
           plot.background = element_rect(fill = "grey35", color = "grey35"),
@@ -97,9 +97,9 @@ lbr_3_f<-fortify(lbr_3)
 
   
   map5<-ggplot()+
-    geom_map(data=districts_f,map=districts_f,aes(x=long,y=lat,map_id=id,fill=log(TOTAL)))+
+    geom_map(data=lbr_2_f_shp,map=lbr_2_f_shp,aes(x=long,y=lat,map_id=id,fill=log(TOTAL)))+
     scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
-    geom_map(data=counties_f,map=counties_f,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+    geom_map(data=lbr_1_f_shp,map=lbr_1_f_shp,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
     theme(text = element_text(color = "white"),
           rect = element_rect(fill = "grey35", color = "grey35"),
           plot.background = element_rect(fill = "grey35", color = "grey35"),
@@ -115,9 +115,9 @@ lbr_3_f<-fortify(lbr_3)
 
   
   map6<-ggplot()+
-    geom_map(data=clans_f,map=clans_f,aes(x=long,y=lat,map_id=id,fill=log(SUM_TOTAL)))+
+    geom_map(data=lbr_3_f_shp,map=lbr_3_f_shp,aes(x=long,y=lat,map_id=id,fill=log(SUM_TOTAL)))+
     scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
-    geom_map(data=counties_f,map=counties_f,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+    geom_map(data=lbr_1_f_shp,map=lbr_1_f_shp,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
     theme(text = element_text(color = "white"),
           rect = element_rect(fill = "grey35", color = "grey35"),
           plot.background = element_rect(fill = "grey35", color = "grey35"),
@@ -138,7 +138,7 @@ lbr_3_f<-fortify(lbr_3)
 #### V2. GPW4 ####
   
   ### LOAD GWP4 DATA ###
-  gpw4<-raster("~/Documents/W_M/Year_1/2017_Summer/Monroe_Project/gpw-v4-population-count_2010.tif")
+  #gpw4<-raster("~/Documents/W_M/Year_1/2017_Summer/Monroe_Project/gpw-v4-population-count_2010.tif")
   #gpw4
   #plot(gpw4)
   
@@ -181,20 +181,20 @@ lbr_3_f<-fortify(lbr_3)
   
   
   ### MAKE MAPS ###
-  map0<-ggplot(lbr_0_f, aes(x=long, y = lat))+
-             geom_map(data = lbr_0_f, map=lbr_0_f,aes(x=long, y=lat,map_id=id,fill=pop))+
+  map0<-ggplot(lbr_0_f_gpw4, aes(x=long, y = lat))+
+             geom_map(data = lbr_0_f_gpw4, map=lbr_0_f_gpw4,aes(x=long, y=lat,map_id=id,fill=pop))+
              scale_fill_gradient(low="yellow",high="red",space="Lab")
 
   
-  # map1<-ggplot(lbr_1_f, aes(x=long, y = lat))+
-  #   geom_map(data = lbr_1_f, map=lbr_1_f,aes(x=long, y=lat,map_id=id,fill=pop))+
+  # map1<-ggplot(lbr_1_f_gpw4, aes(x=long, y = lat))+
+  #   geom_map(data = lbr_1_f_gpw4, map=lbr_1_f_gpw4,aes(x=long, y=lat,map_id=id,fill=pop))+
   #   scale_fill_gradient(low="yellow",high="red",space="Lab")
   # map1
   
   map1<-ggplot()+
-    geom_map(data=lbr_1_f,map=lbr_1_f,aes(x=long,y=lat,map_id=id,fill=log(pop)))+
+    geom_map(data=lbr_1_f_gpw4,map=lbr_1_f_gpw4,aes(x=long,y=lat,map_id=id,fill=log(pop)))+
     scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
-    geom_map(data=lbr_1_f,map=lbr_1_f,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+    geom_map(data=lbr_1_f_gpw4,map=lbr_1_f_gpw4,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
     theme(text = element_text(color = "white"),
           rect = element_rect(fill = "grey35", color = "grey35"),
           plot.background = element_rect(fill = "grey35", color = "grey35"),
@@ -208,15 +208,15 @@ lbr_3_f<-fortify(lbr_3)
           legend.position = c(.1,.2))+
     ggtitle("County Pop. (gpw4)")
   
-  # map2<-ggplot(lbr_2_f, aes(x=long, y = lat))+
-  #   geom_map(data = lbr_2_f, map=lbr_2_f,aes(x=long, y=lat,map_id=id,fill=pop))+
+  # map2<-ggplot(lbr_2_f_gpw4, aes(x=long, y = lat))+
+  #   geom_map(data = lbr_2_f_gpw4, map=lbr_2_f_gpw4,aes(x=long, y=lat,map_id=id,fill=pop))+
   #   scale_fill_gradient(low="yellow",high="red",space="Lab")
   # map2
   
   map2<-ggplot()+
-    geom_map(data=lbr_2_f,map=lbr_2_f,aes(x=long,y=lat,map_id=id,fill=log(pop)))+
+    geom_map(data=lbr_2_f_gpw4,map=lbr_2_f_gpw4,aes(x=long,y=lat,map_id=id,fill=log(pop)))+
     scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
-    geom_map(data=lbr_1_f,map=lbr_1_f,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+    geom_map(data=lbr_1_f_gpw4,map=lbr_1_f_gpw4,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
     theme(text = element_text(color = "white"),
           rect = element_rect(fill = "grey35", color = "grey35"),
           plot.background = element_rect(fill = "grey35", color = "grey35"),
@@ -230,15 +230,15 @@ lbr_3_f<-fortify(lbr_3)
           legend.position = c(.1,.2))+
     ggtitle("District Pop. (gpw4)")
   
-  map3<-ggplot(lbr_3_f, aes(x=long, y = lat))+
-    geom_map(data = lbr_3_f, map=lbr_3_f,aes(x=long, y=lat,map_id=id,fill=pop))+
+  map3<-ggplot(lbr_3_f_gpw4, aes(x=long, y = lat))+
+    geom_map(data = lbr_3_f_gpw4, map=lbr_3_f_gpw4,aes(x=long, y=lat,map_id=id,fill=pop))+
     scale_fill_gradient(low="yellow",high="red",space="Lab")
   map3
   
   map3<-ggplot()+
-    geom_map(data=lbr_3_f,map=lbr_3_f,aes(x=long,y=lat,map_id=id,fill=log(pop)))+
+    geom_map(data=lbr_3_f_gpw4,map=lbr_3_f_gpw4,aes(x=long,y=lat,map_id=id,fill=log(pop)))+
     scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
-    geom_map(data=lbr_1_f,map=lbr_1_f,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+    geom_map(data=lbr_1_f_gpw4,map=lbr_1_f_gpw4,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
     theme(text = element_text(color = "white"),
           rect = element_rect(fill = "grey35", color = "grey35"),
           plot.background = element_rect(fill = "grey35", color = "grey35"),
