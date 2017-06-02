@@ -230,10 +230,10 @@ lbr_3_f<-fortify(lbr_3)
           legend.position = c(.1,.2))+
     ggtitle("District Pop. (gpw4)")
   
-  map3<-ggplot(lbr_3_f_gpw4, aes(x=long, y = lat))+
-    geom_map(data = lbr_3_f_gpw4, map=lbr_3_f_gpw4,aes(x=long, y=lat,map_id=id,fill=pop))+
-    scale_fill_gradient(low="yellow",high="red",space="Lab")
-  map3
+  # map3<-ggplot(lbr_3_f_gpw4, aes(x=long, y = lat))+
+  #   geom_map(data = lbr_3_f_gpw4, map=lbr_3_f_gpw4,aes(x=long, y=lat,map_id=id,fill=pop))+
+  #   scale_fill_gradient(low="yellow",high="red",space="Lab")
+  # map3
   
   map3<-ggplot()+
     geom_map(data=lbr_3_f_gpw4,map=lbr_3_f_gpw4,aes(x=long,y=lat,map_id=id,fill=log(pop)))+
@@ -251,6 +251,7 @@ lbr_3_f<-fortify(lbr_3)
           axis.ticks = element_blank(),
           legend.position = c(.1,.2))+
     ggtitle("Clan Pop. (gpw4)")
+  map3
 
 ##
 #ggsave("lbr_county.png", arrangeGrob(lbr_county_pop, lbr_county_density,lbr_county_perfem,lbr_county_house, nrow = 2,ncol = 2), width = 14, height = 12, dpi = 150)
