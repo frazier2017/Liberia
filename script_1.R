@@ -258,6 +258,7 @@ comparison<-arrangeGrob(map1,map4,map2,map5,map3,map6,nrow=3,ncol=2)
 ggsave("comaprison.png",comparison,width = 20, height = 18, dpi = 150)
 ##
 
+
 #### V3. SURVEY DATA ####
 
 #CREATE SPATIAL POLYGON DATAFRAMES, CORRECT DATA AND FORTIFY
