@@ -251,12 +251,12 @@ lbr_3_f<-fortify(lbr_3)
           axis.ticks = element_blank(),
           legend.position = c(.1,.2))+
     ggtitle("Clan Pop. (gpw4)")
-  map3
+  
 
 ##
 #ggsave("lbr_county.png", arrangeGrob(lbr_county_pop, lbr_county_density,lbr_county_perfem,lbr_county_house, nrow = 2,ncol = 2), width = 14, height = 12, dpi = 150)
 comparison<-arrangeGrob(map1,map4,map2,map5,map3,map6,nrow=3,ncol=2)
-ggsave("comaprison.png",comparison,width = 20, height = 18, dpi = 150)
+ggsave("comparison.png",comparison,width = 20, height = 18, dpi = 150)
 ##
 
 #### V3. SURVEY DATA ####
