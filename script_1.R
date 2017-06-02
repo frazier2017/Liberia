@@ -135,62 +135,49 @@ lbr_3_f<-fortify(lbr_3)
 ##
   
   
-#### V2. GWP4 ####
+#### V2. GPW4 ####
   
-  ### LOAD LIBERIA DATA ###
-  lbr_0<-readRDS("lbr_adm0.RDS")
-  lbr_1<-readRDS("lbr_adm1.RDS")
-  lbr_2<-readRDS("lbr_adm2.RDS")
-  lbr_3<-readRDS("lbr_adm3.RDS")
-  
-  ### LOAD GWP$ DATA ###
-  gwp4<-raster("gpw-v4-population-count_2010.tif")
-  #gwp4
-  #plot(gwp4)
+  ### LOAD GWP4 DATA ###
+  gpw4<-raster("~/Documents/W_M/Year_1/2017_Summer/Monroe_Project/gpw-v4-population-count_2010.tif")
+  #gpw4
+  #plot(gpw4)
   
   ### JOIN DATA ###
-  #lbr_0_gwp4<-extract(gwp4,lbr_0,df=TRUE)
-  #save(lbr_0_gwp4,file = "lbr_0_gwp4.RData")
-  load("lbr_0_gwp4.RData")
-  lbr_0_gwp4_totals<-aggregate(.~ID,lbr_0_gwp4,sum)
-  lbr_0_gwp4_totals$ID<-as.character(lbr_0_gwp4_totals$ID)
-  names(lbr_0_gwp4_totals)[2]<-"pop"
-  lbr_0@data$ID<-1:nrow(lbr_0@data)
-  lbr_0_f<-fortify(lbr_0,region = "ID")
-  lbr_0_f<-left_join(x=lbr_0_f,y=lbr_0_gwp4_totals,by=c("id"="ID"))
+  
+  #lbr_0_gpw4<-extract(gpw4,lbr_0,df=TRUE)
+  #save(lbr_0_gpw4,file = "lbr_0_gpw4.RData")
+  load("lbr_0_gpw4.RData")
+  lbr_0_gpw4_totals<-aggregate(.~ID,lbr_0_gpw4,sum)
+  lbr_0_gpw4_totals$ID<-as.character((lbr_0_gpw4_totals$ID-1))
+  names(lbr_0_gpw4_totals)[2]<-"pop"
+  lbr_0_f_gpw4<-left_join(x=lbr_0_f,y=lbr_0_gpw4_totals,by=c("id"="ID"))
   
   
-  #lbr_1_gwp4<-extract(gwp4,lbr_1,df=TRUE)
-  #save(lbr_1_gwp4,file = "lbr_1_gwp4.RData")
-  load("lbr_1_gwp4.RData")
-  lbr_1_gwp4_totals<-aggregate(.~ID,lbr_1_gwp4,sum)
-  lbr_1_gwp4_totals$ID<-as.character(lbr_1_gwp4_totals$ID)
-  names(lbr_1_gwp4_totals)[2]<-"pop"
-  lbr_1@data$ID<-1:nrow(lbr_1@data)
-  lbr_1_f<-fortify(lbr_1,region = "ID")
-  lbr_1_f<-left_join(x=lbr_1_f,y=lbr_1_gwp4_totals,by=c("id"="ID"))
+  #lbr_1_gpw4<-extract(gpw4,lbr_1,df=TRUE)
+  #save(lbr_1_gpw4,file = "lbr_1_gpw4.RData")
+  load("lbr_1_gpw4.RData")
+  lbr_1_gpw4_totals<-aggregate(.~ID,lbr_1_gpw4,sum)
+  lbr_1_gpw4_totals$ID<-as.character((lbr_1_gpw4_totals$ID-1))
+  names(lbr_1_gpw4_totals)[2]<-"pop"
+  lbr_1_f_gpw4<-left_join(x=lbr_1_f,y=lbr_1_gpw4_totals,by=c("id"="ID"))
   
   
-  #lbr_2_gwp4<-extract(gwp4,lbr_2,df=TRUE)
-  #save(lbr_2_gwp4,file = "lbr_2_gwp4.RData")
-  load("lbr_2_gwp4.RData")
-  lbr_2_gwp4_totals<-aggregate(.~ID,lbr_2_gwp4,sum)
-  lbr_2_gwp4_totals$ID<-as.character(lbr_2_gwp4_totals$ID)
-  names(lbr_2_gwp4_totals)[2]<-"pop"
-  lbr_2@data$ID<-1:nrow(lbr_2@data)
-  lbr_2_f<-fortify(lbr_2,region = "ID")
-  lbr_2_f<-left_join(x=lbr_2_f,y=lbr_2_gwp4_totals,by=c("id"="ID"))
+  #lbr_2_gpw4<-extract(gpw4,lbr_2,df=TRUE)
+  #save(lbr_2_gpw4,file = "lbr_2_gpw4.RData")
+  load("lbr_2_gpw4.RData")
+  lbr_2_gpw4_totals<-aggregate(.~ID,lbr_2_gpw4,sum)
+  lbr_2_gpw4_totals$ID<-as.character((lbr_2_gpw4_totals$ID-1))
+  names(lbr_2_gpw4_totals)[2]<-"pop"
+  lbr_2_f_gpw4<-left_join(x=lbr_2_f,y=lbr_2_gpw4_totals,by=c("id"="ID"))
   
   
-  #lbr_3_gwp4<-extract(gwp4,lbr_3,df=TRUE)
-  #save(lbr_3_gwp4,file = "lbr_3_gwp4.RData")
-  load("lbr_3_gwp4.RData")
-  lbr_3_gwp4_totals<-aggregate(.~ID,lbr_3_gwp4,sum)
-  lbr_3_gwp4_totals$ID<-as.character(lbr_3_gwp4_totals$ID)
-  names(lbr_3_gwp4_totals)[2]<-"pop"
-  lbr_3@data$ID<-1:nrow(lbr_3@data)
-  lbr_3_f<-fortify(lbr_3,region = "ID")
-  lbr_3_f<-left_join(x=lbr_3_f,y=lbr_3_gwp4_totals,by=c("id"="ID"))
+  #lbr_3_gpw4<-extract(gpw4,lbr_3,df=TRUE)
+  #save(lbr_3_gpw4,file = "lbr_3_gpw4.RData")
+  load("lbr_3_gpw4.RData")
+  lbr_3_gpw4_totals<-aggregate(.~ID,lbr_3_gpw4,sum)
+  lbr_3_gpw4_totals$ID<-as.character((lbr_3_gpw4_totals$ID-1))
+  names(lbr_3_gpw4_totals)[2]<-"pop"
+  lbr_3_f_gpw4<-left_join(x=lbr_3_f,y=lbr_3_gpw4_totals,by=c("id"="ID"))
   
   
   ### MAKE MAPS ###
@@ -219,7 +206,7 @@ lbr_3_f<-fortify(lbr_3)
           axis.title = element_blank(),
           axis.ticks = element_blank(),
           legend.position = c(.1,.2))+
-    ggtitle("County Pop. (GWP4)")
+    ggtitle("County Pop. (gpw4)")
   
   # map2<-ggplot(lbr_2_f, aes(x=long, y = lat))+
   #   geom_map(data = lbr_2_f, map=lbr_2_f,aes(x=long, y=lat,map_id=id,fill=pop))+
@@ -241,7 +228,7 @@ lbr_3_f<-fortify(lbr_3)
           axis.title = element_blank(),
           axis.ticks = element_blank(),
           legend.position = c(.1,.2))+
-    ggtitle("District Pop. (GWP4)")
+    ggtitle("District Pop. (gpw4)")
   
   map3<-ggplot(lbr_3_f, aes(x=long, y = lat))+
     geom_map(data = lbr_3_f, map=lbr_3_f,aes(x=long, y=lat,map_id=id,fill=pop))+
@@ -263,7 +250,7 @@ lbr_3_f<-fortify(lbr_3)
           axis.title = element_blank(),
           axis.ticks = element_blank(),
           legend.position = c(.1,.2))+
-    ggtitle("Clan Pop. (GWP4)")
+    ggtitle("Clan Pop. (gpw4)")
 
 ##
 #ggsave("lbr_county.png", arrangeGrob(lbr_county_pop, lbr_county_density,lbr_county_perfem,lbr_county_house, nrow = 2,ncol = 2), width = 14, height = 12, dpi = 150)
