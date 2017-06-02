@@ -1,0 +1,503 @@
+rm(list=ls())
+
+setwd("~/Documents/W_M/Year_1/2017_Summer/Monroe Project")
+
+library(rgdal)
+library(dplyr)
+library(rgeos)
+library(ggmap)
+library(raster)
+library(spatstat)
+library(maptools)
+library(sp)
+library(foreign)
+library(knitr)
+library(gridExtra)
+
+##
+#### V1. SHAPEFILES ####
+  
+  ### IMPORT SHAPEFILES ###
+  country<-readOGR(dsn="shapefiles", layer="liberia_revised",stringsAsFactors=FALSE, verbose=FALSE)
+  counties<-readOGR(dsn = "shapefiles",layer="counties",stringsAsFactors = FALSE,verbose=FALSE)
+  districts<-readOGR(dsn="shapefiles",layer="districts", stringsAsFactors = FALSE,verbose = FALSE)
+  clans<-readOGR(dsn="shapefiles",layer="clans", stringsAsFactors = FALSE,verbose = FALSE)
+  
+  proj4string(country)
+  proj4string(counties)
+  proj4string(districts)
+  proj4string(clans)
+  
+  country<-spTransform(country, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+  counties<-spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+  districts<-spTransform(districts, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+  clans<-spTransform(clans, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+  
+  
+  ### CORRECT DATA ###
+  counties@data$SUM_HH[1]<-20508
+  districts@data[which(districts@data$FIRST_CCNA=="Bomi"),]$HHOLDS<-districts@data[which(districts@data$FIRST_CCNA=="Bomi"),]$TOTAL/(counties@data$SUM_TOTAL[1]/counties@data$SUM_HH[1])
+  clans@data[which(clans@data$FIRST_CCNA=="Bomi"),]$SUM_HH<-clans@data[which(clans@data$FIRST_CCNA=="Bomi"),]$SUM_TOTAL/(counties@data$SUM_TOTAL[1]/counties@data$SUM_HH[1])
+  clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_HH[29]<-clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_TOTAL[29]/mean(clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_TOTAL[c(1:28,30:45)]/clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_HH[c(1:28,30:45)])
+  
+  
+  ### MERGE DATA ###
+  country_f<-fortify(country)
+  counties_f<-fortify(counties)
+  districts_f<-fortify(districts)
+  clans_f<-fortify(clans)
+  
+  counties@data$ID<-as.character(c(0:14))
+  counties_f<-left_join(x=counties_f,y=counties@data,by=c("id"="ID"))
+  districts@data$ID<-as.character(c(0:135))
+  districts_f<-left_join(x=districts_f,y=districts@data,by=c("id"="ID"))
+  clans@data$ID<-as.character(c(0:815))
+  clans_f<-left_join(x=clans_f,y=clans@data,by=c("id"="ID"))
+  
+  ### ADJUST LABELS ###
+  ct_points<-gCentroid(counties,byid=TRUE)
+  county_labels<-cbind.data.frame(counties@data$CCNAME,ct_points@coords[,1],ct_points@coords[,2])
+  colnames(county_labels)<-c("name","x","y")
+  county_labels[9,2]<--10.2
+  county_labels[9,3]<-6.63
+  ct_points_2<-gCentroid(districts,byid=TRUE)
+  district_labels<-cbind.data.frame(districts@data$DNAME,ct_points_2@coords[,1],ct_points_2@coords[,2])
+  colnames(district_labels)<-c("name","x","y")
+  ct_points_3<-gCentroid(clans,byid=TRUE)
+  clan_labels<-cbind.data.frame(clans@data$CLNAME,clans@data$FIRST_DNAM,ct_points_3@coords[,1],ct_points_3@coords[,2])
+  colnames(clan_labels)<-c("name","district","x","y")
+  clan_labels2<-clan_labels
+  n<-nrow(clan_labels[which(clan_labels$district=="Greater Monrovia"),])
+  remove<-vector("list",length=n)
+  clan_labels[which(clan_labels$dist == "Greater Monrovia"),]$name <- remove
+  m<-nrow(clan_labels[which(clan_labels$dist=="Commonwealth"),])
+  remove2<-vector("list",m)
+  clan_labels[which(clan_labels$dist == "Commonwealth"),]$name <- remove2
+  
+  ### MAKE MAPS ###
+  map4<-ggplot()+
+    geom_map(data=counties_f,map=counties_f,aes(x=long,y=lat,map_id=id,fill=log(SUM_TOTAL)))+
+    scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
+    geom_map(data=counties_f,map=counties_f,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.2)+
+    theme(text = element_text(color = "white"),
+          rect = element_rect(fill = "grey35", color = "grey35"),
+          plot.background = element_rect(fill = "grey35", color = "grey35"),
+          panel.background = element_rect(fill = "grey35", color = "grey35"),
+          plot.title = element_text(),
+          panel.grid = element_blank(),
+          panel.border = element_blank(),
+          axis.text = element_blank(),
+          axis.title = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = c(.1,.2))+
+    ggtitle("County Pop. (Shapefile)")
+
+  
+  map5<-ggplot()+
+    geom_map(data=districts_f,map=districts_f,aes(x=long,y=lat,map_id=id,fill=log(TOTAL)))+
+    scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
+    geom_map(data=counties_f,map=counties_f,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+    theme(text = element_text(color = "white"),
+          rect = element_rect(fill = "grey35", color = "grey35"),
+          plot.background = element_rect(fill = "grey35", color = "grey35"),
+          panel.background = element_rect(fill = "grey35", color = "grey35"),
+          plot.title = element_text(),
+          panel.grid = element_blank(),
+          panel.border = element_blank(),
+          axis.text = element_blank(),
+          axis.title = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = c(.1,.2))+
+    ggtitle("District Pop. (Shapefile))")
+
+  
+  map6<-ggplot()+
+    geom_map(data=clans_f,map=clans_f,aes(x=long,y=lat,map_id=id,fill=log(SUM_TOTAL)))+
+    scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
+    geom_map(data=counties_f,map=counties_f,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+    theme(text = element_text(color = "white"),
+          rect = element_rect(fill = "grey35", color = "grey35"),
+          plot.background = element_rect(fill = "grey35", color = "grey35"),
+          panel.background = element_rect(fill = "grey35", color = "grey35"),
+          plot.title = element_text(),
+          panel.grid = element_blank(),
+          panel.border = element_blank(),
+          axis.text = element_blank(),
+          axis.title = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = c(.1,.2))+
+    ggtitle("Clan Pop. (Shapefile)")
+
+  
+##
+  
+  
+#### V2. GWP4 ####
+  
+  ### LOAD LIBERIA DATA ###
+  lbr_0<-readRDS("lbr_adm0.RDS")
+  lbr_1<-readRDS("lbr_adm1.RDS")
+  lbr_2<-readRDS("lbr_adm2.RDS")
+  lbr_3<-readRDS("lbr_adm3.RDS")
+  
+  ### LOAD GWP$ DATA ###
+  gwp4<-raster("gpw-v4-population-count_2010.tif")
+  #gwp4
+  #plot(gwp4)
+  
+  ### JOIN DATA ###
+  #lbr_0_gwp4<-extract(gwp4,lbr_0,df=TRUE)
+  #save(lbr_0_gwp4,file = "lbr_0_gwp4.RData")
+  load("lbr_0_gwp4.RData")
+  lbr_0_gwp4_totals<-aggregate(.~ID,lbr_0_gwp4,sum)
+  lbr_0_gwp4_totals$ID<-as.character(lbr_0_gwp4_totals$ID)
+  names(lbr_0_gwp4_totals)[2]<-"pop"
+  lbr_0@data$ID<-1:nrow(lbr_0@data)
+  lbr_0_f<-fortify(lbr_0,region = "ID")
+  lbr_0_f<-left_join(x=lbr_0_f,y=lbr_0_gwp4_totals,by=c("id"="ID"))
+  
+  
+  #lbr_1_gwp4<-extract(gwp4,lbr_1,df=TRUE)
+  #save(lbr_1_gwp4,file = "lbr_1_gwp4.RData")
+  load("lbr_1_gwp4.RData")
+  lbr_1_gwp4_totals<-aggregate(.~ID,lbr_1_gwp4,sum)
+  lbr_1_gwp4_totals$ID<-as.character(lbr_1_gwp4_totals$ID)
+  names(lbr_1_gwp4_totals)[2]<-"pop"
+  lbr_1@data$ID<-1:nrow(lbr_1@data)
+  lbr_1_f<-fortify(lbr_1,region = "ID")
+  lbr_1_f<-left_join(x=lbr_1_f,y=lbr_1_gwp4_totals,by=c("id"="ID"))
+  
+  
+  #lbr_2_gwp4<-extract(gwp4,lbr_2,df=TRUE)
+  #save(lbr_2_gwp4,file = "lbr_2_gwp4.RData")
+  load("lbr_2_gwp4.RData")
+  lbr_2_gwp4_totals<-aggregate(.~ID,lbr_2_gwp4,sum)
+  lbr_2_gwp4_totals$ID<-as.character(lbr_2_gwp4_totals$ID)
+  names(lbr_2_gwp4_totals)[2]<-"pop"
+  lbr_2@data$ID<-1:nrow(lbr_2@data)
+  lbr_2_f<-fortify(lbr_2,region = "ID")
+  lbr_2_f<-left_join(x=lbr_2_f,y=lbr_2_gwp4_totals,by=c("id"="ID"))
+  
+  
+  #lbr_3_gwp4<-extract(gwp4,lbr_3,df=TRUE)
+  #save(lbr_3_gwp4,file = "lbr_3_gwp4.RData")
+  load("lbr_3_gwp4.RData")
+  lbr_3_gwp4_totals<-aggregate(.~ID,lbr_3_gwp4,sum)
+  lbr_3_gwp4_totals$ID<-as.character(lbr_3_gwp4_totals$ID)
+  names(lbr_3_gwp4_totals)[2]<-"pop"
+  lbr_3@data$ID<-1:nrow(lbr_3@data)
+  lbr_3_f<-fortify(lbr_3,region = "ID")
+  lbr_3_f<-left_join(x=lbr_3_f,y=lbr_3_gwp4_totals,by=c("id"="ID"))
+  
+  
+  ### MAKE MAPS ###
+  map0<-ggplot(lbr_0_f, aes(x=long, y = lat))+
+             geom_map(data = lbr_0_f, map=lbr_0_f,aes(x=long, y=lat,map_id=id,fill=pop))+
+             scale_fill_gradient(low="yellow",high="red",space="Lab")
+
+  
+  # map1<-ggplot(lbr_1_f, aes(x=long, y = lat))+
+  #   geom_map(data = lbr_1_f, map=lbr_1_f,aes(x=long, y=lat,map_id=id,fill=pop))+
+  #   scale_fill_gradient(low="yellow",high="red",space="Lab")
+  # map1
+  
+  map1<-ggplot()+
+    geom_map(data=lbr_1_f,map=lbr_1_f,aes(x=long,y=lat,map_id=id,fill=log(pop)))+
+    scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
+    geom_map(data=lbr_1_f,map=lbr_1_f,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+    theme(text = element_text(color = "white"),
+          rect = element_rect(fill = "grey35", color = "grey35"),
+          plot.background = element_rect(fill = "grey35", color = "grey35"),
+          panel.background = element_rect(fill = "grey35", color = "grey35"),
+          plot.title = element_text(),
+          panel.grid = element_blank(),
+          panel.border = element_blank(),
+          axis.text = element_blank(),
+          axis.title = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = c(.1,.2))+
+    ggtitle("County Pop. (GWP4)")
+  
+  # map2<-ggplot(lbr_2_f, aes(x=long, y = lat))+
+  #   geom_map(data = lbr_2_f, map=lbr_2_f,aes(x=long, y=lat,map_id=id,fill=pop))+
+  #   scale_fill_gradient(low="yellow",high="red",space="Lab")
+  # map2
+  
+  map2<-ggplot()+
+    geom_map(data=lbr_2_f,map=lbr_2_f,aes(x=long,y=lat,map_id=id,fill=log(pop)))+
+    scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
+    geom_map(data=lbr_1_f,map=lbr_1_f,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+    theme(text = element_text(color = "white"),
+          rect = element_rect(fill = "grey35", color = "grey35"),
+          plot.background = element_rect(fill = "grey35", color = "grey35"),
+          panel.background = element_rect(fill = "grey35", color = "grey35"),
+          plot.title = element_text(),
+          panel.grid = element_blank(),
+          panel.border = element_blank(),
+          axis.text = element_blank(),
+          axis.title = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = c(.1,.2))+
+    ggtitle("District Pop. (GWP4)")
+  
+  map3<-ggplot(lbr_3_f, aes(x=long, y = lat))+
+    geom_map(data = lbr_3_f, map=lbr_3_f,aes(x=long, y=lat,map_id=id,fill=pop))+
+    scale_fill_gradient(low="yellow",high="red",space="Lab")
+  map3
+  
+  map3<-ggplot()+
+    geom_map(data=lbr_3_f,map=lbr_3_f,aes(x=long,y=lat,map_id=id,fill=log(pop)))+
+    scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
+    geom_map(data=lbr_1_f,map=lbr_1_f,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+    theme(text = element_text(color = "white"),
+          rect = element_rect(fill = "grey35", color = "grey35"),
+          plot.background = element_rect(fill = "grey35", color = "grey35"),
+          panel.background = element_rect(fill = "grey35", color = "grey35"),
+          plot.title = element_text(),
+          panel.grid = element_blank(),
+          panel.border = element_blank(),
+          axis.text = element_blank(),
+          axis.title = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = c(.1,.2))+
+    ggtitle("Clan Pop. (GWP4)")
+
+##
+#ggsave("lbr_county.png", arrangeGrob(lbr_county_pop, lbr_county_density,lbr_county_perfem,lbr_county_house, nrow = 2,ncol = 2), width = 14, height = 12, dpi = 150)
+comparison<-arrangeGrob(map1,map4,map2,map5,map3,map6,nrow=3,ncol=2)
+ggsave("comaprison.png",comparison,width = 20, height = 18, dpi = 150)
+##
+
+#### V3. SURVEY DATA ####
+
+#CREATE SPATIAL POLYGON DATAFRAMES, CORRECT DATA AND FORTIFY
+#counties <- getData("GADM", country="LBR", level=1)
+
+africa <- readOGR(dsn="shapefiles", layer="africa", stringsAsFactors=FALSE, verbose=FALSE)
+country <- readOGR(dsn="shapefiles", layer="liberia_revised", stringsAsFactors=FALSE, verbose=FALSE)
+counties <- readOGR(dsn="shapefiles", layer="counties", stringsAsFactors=FALSE, verbose=FALSE)
+districts <- readOGR(dsn="shapefiles", layer="districts", stringsAsFactors=FALSE, verbose=FALSE)
+clans <- readOGR(dsn="shapefiles", layer="clans", stringsAsFactors=FALSE, verbose=FALSE)
+
+proj4string(counties)
+
+country <- spTransform(country, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+counties <- spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+districts <- spTransform(districts, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+clans <- spTransform(clans, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+
+#modify africa data frame
+africa <- subset(africa, Land_Type == "Primary land")
+#africa <- subset(africa, COUNTRY == "Sierra Leone" | COUNTRY == "Guinea" | COUNTRY == "Côte d'Ivoire")
+
+#correct Number of Households in Bomi County
+#bomi <- subset(districts@data, FIRST_CCNA == "Bomi")
+#counties@data[1,7] <- sum(bomi$HHOLDS)
+
+###correct data
+counties@data$SUM_HH[1]<-20508
+districts@data[which(districts@data$FIRST_CCNA=="Bomi"),]$HHOLDS<-districts@data[which(districts@data$FIRST_CCNA=="Bomi"),]$TOTAL/(counties@data$SUM_TOTAL[1]/counties@data$SUM_HH[1])
+clans@data[which(clans@data$FIRST_CCNA=="Bomi"),]$SUM_HH<-clans@data[which(clans@data$FIRST_CCNA=="Bomi"),]$SUM_TOTAL/(counties@data$SUM_TOTAL[1]/counties@data$SUM_HH[1])
+clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_HH[29]<-clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_TOTAL[29]/mean(clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_TOTAL[c(1:28,30:45)]/clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_HH[c(1:28,30:45)])
+
+
+africa_f <- fortify(africa)
+country_f <- fortify(country)
+counties_f <- fortify(counties)
+districts_f <- fortify(districts)
+clans_f <- fortify(clans)
+
+#COUNTRIES
+#create labels & join data to data frame
+country_names <- africa@data$COUNTRY
+country_cpts <- gCentroid(africa, byid=TRUE)
+country_labs <- cbind.data.frame(country_names, country_cpts@coords[,1], country_cpts@coords[,2])
+names(country_labs) <- c("country","x","y")
+country_labs[1,2] <- -7.75 #modify Cote d'Ivore location
+country_labs[1,3] <- 6.75 
+country_labs[2,2] <- -9.00 #modify Guinea location
+country_labs[2,3] <- 8.4 
+country_labs[3,2] <- -11.15 #modify Guinea location
+country_labs[3,3] <- 8.00 
+
+#COUNTIES
+#create labels & join data to data frame
+county_names <- counties@data$CCNAME
+county_cpts <- gCentroid(counties, byid=TRUE)
+county_labs <- cbind.data.frame(county_names, county_cpts@coords[,1], county_cpts@coords[,2])
+names(county_labs) <- c("county","x","y")
+county_labs[9,3] <- 6.65 # Margibi county location
+county_labs[9,2] <- -10.25
+
+counties_d <- counties@data[,c(2,4:7)]
+counties_d$id <- row.names(counties)
+counties_f <- left_join(x = counties_f, y = counties_d, by = c("id" = "id"))
+
+#DISTRICTS
+#create labels & join data to data frame
+district_names <- districts@data$DNAME
+district_cpts <- gCentroid(districts, byid=TRUE)
+district_labs <- cbind.data.frame(district_names, district_cpts@coords[,1], district_cpts@coords[,2])
+names(district_labs) <- c("district","x","y")
+
+districts_d <- districts@data[,c(1,7:10)]
+districts_d$id <- row.names(districts)
+districts_f <- left_join(x = districts_f, y = districts_d, by = c("id" = "id"))
+
+#CLANS
+#create labels & join data to data frame
+clan_names <- clans@data$CLNAME
+clan_cpts <- gCentroid(clans, byid=TRUE)
+clan_labs <- cbind.data.frame(clan_names, clan_cpts@coords[,1], clan_cpts@coords[,2])
+names(clan_labs) <- c("clan","x","y")
+
+clans_d <- clans@data[,c(1,5:8)]
+clans_d$id <- row.names(clans)
+clans_f <- left_join(x = clans_f, y = clans_d, by = c("id" = "id"))
+
+
+# LOAD CWIQ10 DATA AND JOIN TO GOV SUBDIVISION CENTER POINTS
+load("cwiq10.RData")
+
+cnty_survey_cpts <- cbind.data.frame(county_id = counties@data$FIRST_CCOD, county_labs, stringsAsFactors = FALSE)
+dist_survey_cpts <- cbind.data.frame(county_id = districts@data$FIRST_CCOD, district_id = districts@data$FIRST_DCOD, district_labs)
+clan_survey_cpts <- cbind.data.frame(county_id = clans@data$FIRST_CCOD, district_id = clans@data$FIRST_DCOD, clan_id = clans@data$FIRST_CLCO, clan_labs)
+
+# Counties
+# table(cnty_survey_cpts$county_id)
+# table(cwiq10$county)
+cwiq10$county <- substr(cwiq10$hid_mungai,1,2)
+cwiq10$county[cwiq10$county == "01"] <- "30"
+county_cwiq10 <- left_join(x = cnty_survey_cpts, y = cwiq10, by = c("county_id" = "county"))
+
+# Districts
+# length(table(dist_survey_cpts$district_code))
+# length(table(cwiq10$district_code))
+cwiq10$district <- substr(cwiq10$hid_mungai,3,4)
+dist_survey_cpts$district_code  <- paste(dist_survey_cpts$county_id, dist_survey_cpts$district_id, sep = "")
+cwiq10$district_code <- paste(cwiq10$county, cwiq10$district, sep= "")
+district_cwiq10 <- left_join(x = dist_survey_cpts, y = cwiq10, by = c("district_code" = "district_code"))
+# anti_join(x = dist_survey_cpts, y = cwiq10, by = c("district_code" = "district_code"))
+# anti_join(x = cwiq10, y = dist_survey_cpts, by = c("district_code" = "district_code"))
+
+# Clans
+cwiq10$clan_town <- substr(cwiq10$hid_mungai,5,7)
+clan_survey_cpts$clan_code  <- paste(clan_survey_cpts$county_id, clan_survey_cpts$district_id, clan_survey_cpts$clan_id, sep = "")
+cwiq10$clan_town_code <- paste(cwiq10$county, cwiq10$district, cwiq10$clan_town, sep= "")
+clan_cwiq10 <- left_join(x = clan_survey_cpts, y = cwiq10, by = c("clan_code" = "clan_town_code"))
+# anti_join(x = clan_survey_cpts, y = cwiq10, by = c("clan_code" = "clan_town_code"))
+# anti_join(x = cwiq10, y = clan_survey_cpts, by = c("clan_town_code" = "clan_code"))
+
+x<-sum(clan_cwiq10$wta_hh,na.rm=T)
+
+
+# Being Analyzing Point Pattern
+
+#Add National boundary for Liberia
+
+options(scipen=999)
+
+country <- readOGR(dsn="shapefiles", layer="liberia_revised", stringsAsFactors=FALSE, verbose=FALSE)
+proj4string(country)
+country <- spTransform(country, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+
+win <- as(country,"owin")
+
+
+
+cnty_weights <- county_cwiq10$wta_hh
+dist_weights <- district_cwiq10$wta_hh
+clan_weights <- clan_cwiq10$wta_hh
+
+# Total Population
+
+lbr_cnty <- ppp(x = county_cwiq10$x, y = county_cwiq10$y, window = win, marks = cnty_weights)
+lbr_dist <- ppp(x = district_cwiq10$x, y = district_cwiq10$y, window = win, marks = dist_weights)
+lbr_clan <- ppp(x = clan_cwiq10$x, y = clan_cwiq10$y, window = win, marks = clan_weights)
+
+plot(lbr_cnty)
+
+par(mar=c(0,0,1,0))
+
+
+plot.new()
+x<-density(lbr_cnty)
+class(x)
+y<-as.data.frame.im(x)
+ggplot(counties_f, aes(x=long,y=lat))+
+  geom_map(data=counties_f,map = counties_f,aes(x=long, y=lat,map_id=id))#+
+#geom_point(data=y,aes(x=x,y=y,colour=value),cex=1)+
+#scale_fill_gradient(low="red",high="orange",guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")
+
+points(clans_f$long,clans_f$lat,cex=.001)
+
+
+summary(x)
+png("latex/pop_district.png")
+plot(density(lbr_dist), main = "District Weights")
+dev.off()
+
+png("latex/pop_clan.png")
+plot(density(lbr_clan), main = "Clan Weights")
+dev.off()
+
+
+##
+
+#### EXPERIMENT ####
+  
+  africa <- readOGR(dsn="shapefiles", layer="africa", stringsAsFactors=FALSE, verbose=FALSE)
+  country <- readOGR(dsn="shapefiles", layer="liberia_revised", stringsAsFactors=FALSE, verbose=FALSE)
+  counties <- readOGR(dsn="shapefiles", layer="counties", stringsAsFactors=FALSE, verbose=FALSE)
+  districts <- readOGR(dsn="shapefiles", layer="districts", stringsAsFactors=FALSE, verbose=FALSE)
+  clans <- readOGR(dsn="shapefiles", layer="clans", stringsAsFactors=FALSE, verbose=FALSE)
+  
+  proj4string(counties)
+  
+  country <- spTransform(country, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+  counties <- spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+  districts <- spTransform(districts, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+  clans <- spTransform(clans, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+  
+  #modify africa data frame
+  africa <- subset(africa, Land_Type == "Primary land")
+  #africa <- subset(africa, COUNTRY == "Sierra Leone" | COUNTRY == "Guinea" | COUNTRY == "Côte d'Ivoire")
+  
+  #correct Number of Households in Bomi County
+  #bomi <- subset(districts@data, FIRST_CCNA == "Bomi")
+  #counties@data[1,7] <- sum(bomi$HHOLDS)
+  
+  ###correct data
+  counties@data$SUM_HH[1]<-20508
+  districts@data[which(districts@data$FIRST_CCNA=="Bomi"),]$HHOLDS<-districts@data[which(districts@data$FIRST_CCNA=="Bomi"),]$TOTAL/(counties@data$SUM_TOTAL[1]/counties@data$SUM_HH[1])
+  clans@data[which(clans@data$FIRST_CCNA=="Bomi"),]$SUM_HH<-clans@data[which(clans@data$FIRST_CCNA=="Bomi"),]$SUM_TOTAL/(counties@data$SUM_TOTAL[1]/counties@data$SUM_HH[1])
+  clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_HH[29]<-clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_TOTAL[29]/mean(clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_TOTAL[c(1:28,30:45)]/clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_HH[c(1:28,30:45)])
+  
+  
+  africa_f <- fortify(africa)
+  country_f <- fortify(country)
+  counties_f <- fortify(counties)
+  districts_f <- fortify(districts)
+  clans_f <- fortify(clans)
+  
+  win <- as(country,"owin")
+  points<-runifpoint(100,win)
+  points_quad<-quadratcount(points,nx=10,ny=10)
+  plot(points_quad)
+  plot(points,cex=.1)
+  plot(density(points,.2))
+  x<-density(points,.2)
+  x<-as.data.frame.im(x)
+  
+  
+  win2<-as(clans,"owin")
+  points2<-runifpoint(100,win2)
+  plot(points2,cex=.1)
+  plot(density(points2)+points2)
+  
+  ggplot(counties_f, aes(x=long,y=lat))+
+    geom_map(data=counties_f,map = counties_f,aes(x=long, y=lat,map_id=id))+
+    geom_polygon(data=x,aes(x=x,y=y,fill=value))#+
+  scale_fill_gradient(low="red",high="orange",guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")
+  
+  ##
