@@ -14,64 +14,68 @@ library(knitr)
 library(gridExtra)
 
 ##
-#### V1. SHAPEFILES ####
-  
-  ### IMPORT SHAPEFILES ###
-  country<-readOGR(dsn="shapefiles", layer="liberia_revised",stringsAsFactors=FALSE, verbose=FALSE)
-  counties<-readOGR(dsn = "shapefiles",layer="counties",stringsAsFactors = FALSE,verbose=FALSE)
-  districts<-readOGR(dsn="shapefiles",layer="districts", stringsAsFactors = FALSE,verbose = FALSE)
-  clans<-readOGR(dsn="shapefiles",layer="clans", stringsAsFactors = FALSE,verbose = FALSE)
-  
-  proj4string(country)
-  proj4string(counties)
-  proj4string(districts)
-  proj4string(clans)
-  
-  country<-spTransform(country, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-  counties<-spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-  districts<-spTransform(districts, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-  clans<-spTransform(clans, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-  
+
+#### IMPORT SHAPEFILES ####
+lbr_0<-readOGR(dsn="shapefiles", layer="liberia_revised",stringsAsFactors=FALSE, verbose=FALSE)
+lbr_1<-readOGR(dsn = "shapefiles",layer="counties",stringsAsFactors = FALSE,verbose=FALSE)
+lbr_2<-readOGR(dsn="shapefiles",layer="districts", stringsAsFactors = FALSE,verbose = FALSE)
+lbr_3<-readOGR(dsn="shapefiles",layer="clans", stringsAsFactors = FALSE,verbose = FALSE)
+
+proj4string(lbr_0)
+proj4string(lbr_1)
+proj4string(lbr_2)
+proj4string(lbr_3)
+
+lbr_0<-spTransform(lbr_0, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+lbr_1<-spTransform(lbr_1, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+lbr_2<-spTransform(lbr_2, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+lbr_3<-spTransform(lbr_3, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+
+### FORTIFY ###
+lbr_0_f<-fortify(lbr_0)
+lbr_1_f<-fortify(lbr_1)
+lbr_2_f<-fortify(lbr_2)
+lbr_3_f<-fortify(lbr_3)
+
+##
+
+
+#### V1. SHAPEFILES DATA ####
   
   ### CORRECT DATA ###
-  counties@data$SUM_HH[1]<-20508
-  districts@data[which(districts@data$FIRST_CCNA=="Bomi"),]$HHOLDS<-districts@data[which(districts@data$FIRST_CCNA=="Bomi"),]$TOTAL/(counties@data$SUM_TOTAL[1]/counties@data$SUM_HH[1])
-  clans@data[which(clans@data$FIRST_CCNA=="Bomi"),]$SUM_HH<-clans@data[which(clans@data$FIRST_CCNA=="Bomi"),]$SUM_TOTAL/(counties@data$SUM_TOTAL[1]/counties@data$SUM_HH[1])
-  clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_HH[29]<-clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_TOTAL[29]/mean(clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_TOTAL[c(1:28,30:45)]/clans@data[which(clans@data$FIRST_CCNA=="River Gee"),]$SUM_HH[c(1:28,30:45)])
+  lbr_1@data$SUM_HH[1]<-20508
+  lbr_2@data[which(lbr_2@data$FIRST_CCNA=="Bomi"),]$HHOLDS<-lbr_2@data[which(lbr_2@data$FIRST_CCNA=="Bomi"),]$TOTAL/(lbr_1@data$SUM_TOTAL[1]/lbr_1@data$SUM_HH[1])
+  lbr_3@data[which(lbr_3@data$FIRST_CCNA=="Bomi"),]$SUM_HH<-lbr_3@data[which(lbr_3@data$FIRST_CCNA=="Bomi"),]$SUM_TOTAL/(lbr_1@data$SUM_TOTAL[1]/lbr_1@data$SUM_HH[1])
+  lbr_3@data[which(lbr_3@data$FIRST_CCNA=="River Gee"),]$SUM_HH[29]<-lbr_3@data[which(lbr_3@data$FIRST_CCNA=="River Gee"),]$SUM_TOTAL[29]/mean(lbr_3@data[which(lbr_3@data$FIRST_CCNA=="River Gee"),]$SUM_TOTAL[c(1:28,30:45)]/lbr_3@data[which(lbr_3@data$FIRST_CCNA=="River Gee"),]$SUM_HH[c(1:28,30:45)])
   
   
   ### MERGE DATA ###
-  country_f<-fortify(country)
-  counties_f<-fortify(counties)
-  districts_f<-fortify(districts)
-  clans_f<-fortify(clans)
+  lbr_1@data$ID<-as.character(c(0:14))
+  lbr_1_f_shp<-left_join(x=lbr_1_f,y=lbr_1@data,by=c("id"="ID"))
+  lbr_2@data$ID<-as.character(c(0:135))
+  lbr_2_f_shp<-left_join(x=lbr_2_f,y=lbr_2@data,by=c("id"="ID"))
+  lbr_3@data$ID<-as.character(c(0:815))
+  lbr_3_f_shp<-left_join(x=lbr_3_f,y=lbr_3@data,by=c("id"="ID"))
   
-  counties@data$ID<-as.character(c(0:14))
-  counties_f<-left_join(x=counties_f,y=counties@data,by=c("id"="ID"))
-  districts@data$ID<-as.character(c(0:135))
-  districts_f<-left_join(x=districts_f,y=districts@data,by=c("id"="ID"))
-  clans@data$ID<-as.character(c(0:815))
-  clans_f<-left_join(x=clans_f,y=clans@data,by=c("id"="ID"))
-  
-  ### ADJUST LABELS ###
-  ct_points<-gCentroid(counties,byid=TRUE)
-  county_labels<-cbind.data.frame(counties@data$CCNAME,ct_points@coords[,1],ct_points@coords[,2])
-  colnames(county_labels)<-c("name","x","y")
-  county_labels[9,2]<--10.2
-  county_labels[9,3]<-6.63
-  ct_points_2<-gCentroid(districts,byid=TRUE)
-  district_labels<-cbind.data.frame(districts@data$DNAME,ct_points_2@coords[,1],ct_points_2@coords[,2])
-  colnames(district_labels)<-c("name","x","y")
-  ct_points_3<-gCentroid(clans,byid=TRUE)
-  clan_labels<-cbind.data.frame(clans@data$CLNAME,clans@data$FIRST_DNAM,ct_points_3@coords[,1],ct_points_3@coords[,2])
-  colnames(clan_labels)<-c("name","district","x","y")
-  clan_labels2<-clan_labels
-  n<-nrow(clan_labels[which(clan_labels$district=="Greater Monrovia"),])
-  remove<-vector("list",length=n)
-  clan_labels[which(clan_labels$dist == "Greater Monrovia"),]$name <- remove
-  m<-nrow(clan_labels[which(clan_labels$dist=="Commonwealth"),])
-  remove2<-vector("list",m)
-  clan_labels[which(clan_labels$dist == "Commonwealth"),]$name <- remove2
+  # ### ADJUST LABELS ###
+  # ct_points<-gCentroid(counties,byid=TRUE)
+  # county_labels<-cbind.data.frame(counties@data$CCNAME,ct_points@coords[,1],ct_points@coords[,2])
+  # colnames(county_labels)<-c("name","x","y")
+  # county_labels[9,2]<--10.2
+  # county_labels[9,3]<-6.63
+  # ct_points_2<-gCentroid(districts,byid=TRUE)
+  # district_labels<-cbind.data.frame(districts@data$DNAME,ct_points_2@coords[,1],ct_points_2@coords[,2])
+  # colnames(district_labels)<-c("name","x","y")
+  # ct_points_3<-gCentroid(clans,byid=TRUE)
+  # clan_labels<-cbind.data.frame(clans@data$CLNAME,clans@data$FIRST_DNAM,ct_points_3@coords[,1],ct_points_3@coords[,2])
+  # colnames(clan_labels)<-c("name","district","x","y")
+  # clan_labels2<-clan_labels
+  # n<-nrow(clan_labels[which(clan_labels$district=="Greater Monrovia"),])
+  # remove<-vector("list",length=n)
+  # clan_labels[which(clan_labels$dist == "Greater Monrovia"),]$name <- remove
+  # m<-nrow(clan_labels[which(clan_labels$dist=="Commonwealth"),])
+  # remove2<-vector("list",m)
+  # clan_labels[which(clan_labels$dist == "Commonwealth"),]$name <- remove2
   
   ### MAKE MAPS ###
   map4<-ggplot()+
