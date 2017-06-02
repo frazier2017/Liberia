@@ -1,6 +1,5 @@
 rm(list=ls())
-
-setwd("~/Documents/W_M/Year_1/2017_Summer/Monroe Project")
+setwd("~/GitHub/Liberia")
 
 library(rgdal)
 library(dplyr)
