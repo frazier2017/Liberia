@@ -139,7 +139,7 @@ lbr_3_f<-fortify(lbr_3)
 #### V2. GPW4 ####
   
   ### LOAD GWP4 DATA ###
-  #gpw4<-raster("~/Documents/W_M/Year_1/2017_Summer/Monroe_Project/gpw-v4-population-count_2010.tif")
+  gpw4<-raster("gpw-v4-population-count_2010.tif")
   #gpw4
   #plot(gpw4)
   
@@ -262,7 +262,7 @@ ggsave("comparison.png",comparison,width = 20, height = 18, dpi = 150)
 
 #### V3. SURVEY DATA ####
 
-### LABELING ###
+#### LABELING ####
 
 #COUNTRIES
 # create labels & join data to data frame
@@ -495,3 +495,52 @@ dev.off()
   scale_fill_gradient(low="red",high="orange",guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")
   
   ##
+#### EXPERIMENTING RASTER GPW4 ####
+  
+  ###RASTER GPW4###
+  
+  
+  ### LOAD GWP4 DATA ###
+  gpw4<-raster("gpw-v4-population-count_2010.tif")
+  #gpw4
+  #plot(gpw4)
+  
+  ###TESTING###
+    # x <- raster(ncol=36, nrow=18, xmn=-11.5, xmx=4.25, ymn=-7.25, ymx=8.6)
+    # res(x)
+    # ncol(x)
+  
+    ##Dots exist with below function, but doesn't zoom in##
+      
+      # projection(gpw4) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+      # plot(gpw4)
+      
+    ##Setting xmin through y max changes viewing window; display is still the world and not cropped
+    
+      # xmin(gpw4) <- (-11.65)
+      # xmax(gpw4) <- (4.25)
+      # ymin(gpw4) <- (-7.25)
+      # ymax(gpw4) <- (8.6)
+      # 
+      # gpw4
+      # plot(gpw4)
+  
+    ##Commands in Raster
+      # hasValues(gpw4)
+      # res(gpw4)
+      # dim(gpw4)
+      # inMemory(gpw4)
+      # nlayers(gpw4)
+    
+      # gpw4test1 <- crop(gpw4, extent(-11.65, 4.25, -7.25, 8.6))
+      # plot(gpw4test1)
+    
+    ##xmin, xmax, ymin, ymax (-14, -5, 4.2, 13) Fit in Liberia
+    gpw4test <- crop(gpw4, extent(-14, -5, 4.2, 13))
+    plot(gpw4test, axes = F, box = F)
+    
+      # e <- extract(gpw4test2, lbr_1, fun=mean)
+      # plot(e)
+      # Could be useful for Shapefiles to Raster: https://amywhiteheadresearch.wordpress.com/2014/05/01/shp2raster/
+      #https://rpubs.com/alobo/vectorOnraster
+    
