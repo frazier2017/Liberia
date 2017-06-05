@@ -540,7 +540,7 @@ dev.off()
       # plot(gpw4test1)
     
     ##xmin, xmax, ymin, ymax (-14, -5, 4.2, 13) Fit in Liberia##
-      gpw4test <- crop(gpw4, extent(-14, -5, 4.2, 13))
+      # gpw4test <- crop(gpw4, extent(-14, -5, 4.2, 13)) -----> Updated bbox ((-11.55, -7.3, 4.2, 8.6))
       plot(gpw4test, axes = F, box = F, col=topo.colors((10000)))
       
       #Scale in Grey#
@@ -608,10 +608,107 @@ dev.off()
       ##Adjusting bounding box to fit Liberia##
         gpw4<-raster("gpw-v4-population-count_2010.tif")
         gpw4test <- crop(gpw4, extent(-11.55, -7.3, 4.2, 8.6)) #xmin, xmax, ymin, ymax 
+        
         m10 <- levelplot(gpw4test, at = piplup, main = "Scale 0.01-100 breaks of 5 \n with Liberia border overlay") + layer(sp.polygons(lbr_0))
         m10
         
-     
+#####LBR Overlay SHP on LEVEL.PLOT####
+  #This section will have some code from other sections so that anyone can just copy paste just this section out
+    
+    ###READING SHAPEFILES###
+    lbr_0<-readOGR(dsn="shapefiles", layer="liberia_revised",stringsAsFactors=FALSE, verbose=FALSE)
+    lbr_1<-readOGR(dsn = "shapefiles",layer="counties",stringsAsFactors = FALSE,verbose=FALSE)
+    lbr_2<-readOGR(dsn="shapefiles",layer="districts", stringsAsFactors = FALSE,verbose = FALSE)
+    lbr_3<-readOGR(dsn="shapefiles",layer="clans", stringsAsFactors = FALSE,verbose = FALSE)
+        
+    proj4string(lbr_0)
+    proj4string(lbr_1)
+    proj4string(lbr_2)
+    proj4string(lbr_3)
+        
+    lbr_0<-spTransform(lbr_0, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    lbr_1<-spTransform(lbr_1, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    lbr_2<-spTransform(lbr_2, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    lbr_3<-spTransform(lbr_3, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    
+    ###READING GPW AND CROP###    
+    gpw4<-raster("gpw-v4-population-count_2010.tif")
+    gpw4 <- crop(gpw4, extent(-14, -5, 4.2, 13))
+        
+    ###PLOTTING###
+    
+    ##County##
+      piplup <- seq(.01, 100, by = 5)
+      m1 <- levelplot(gpw4test, at=piplup, main = "Lbr County Lvl Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_1, col = "gray80"))
+      
+      turtwig <- seq(0.01, 250, by = 5)
+      m2 <- levelplot(gpw4test, at = turtwig, main = "Lbr County Lvl Scale 0.01-250 breaks of 5") + layer(sp.polygons(lbr_1, col = "gray80"))
+      
+      chimchar <- seq(0.01, 500, by = 5)
+      m3 <- levelplot(gpw4test, at = chimchar, main = "Lbr County Lvl Scale 0.01-500 breaks of 5") + layer(sp.polygons(lbr_1, col = "gray80"))
+      
+      bulbasaur <- seq(0.01, 100, by = 10)
+      m4 <- levelplot(gpw4test, at = bulbasaur, main = "Lbr County Lvl Scale 0.01-100 breaks of 10") + layer(sp.polygons(lbr_1, col = "gray80"))
+      
+      charmander <- seq(0.01, 250, by = 10)
+      m5 <- levelplot(gpw4test, at = charmander, main = "Lbr County Lvl Scale 0.01-250 breaks of 10") + layer(sp.polygons(lbr_1, col = "gray80"))
+      
+      squirtle <- seq(0.01, 500, by = 10)
+      m6 <- levelplot(gpw4test, at = squirtle, main = "Lbr County Lvl Scale 0.01-500 breaks of 10") + layer(sp.polygons(lbr_1, col = "gray80"))
+      
+      comparison<-arrangeGrob(m1,m4,m2,m5,m3,m6,nrow=3,ncol=2)
+      ggsave("lbr_com_shp_cnty.png",comparison,width = 22, height = 20, dpi = 150)
+    
+    ##Districts##
+      piplup <- seq(.01, 100, by = 5)
+      m7 <- levelplot(gpw4test, at=piplup, main = "Lbr District Lvl Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_2, col = "gray80"))
+      
+      turtwig <- seq(0.01, 250, by = 5)
+      m8 <- levelplot(gpw4test, at = turtwig, main = "Lbr District Lvl Scale 0.01-250 breaks of 5") + layer(sp.polygons(lbr_2, col = "gray80"))
+      
+      chimchar <- seq(0.01, 500, by = 5)
+      m9 <- levelplot(gpw4test, at = chimchar, main = "Lbr District Lvl Scale 0.01-500 breaks of 5") + layer(sp.polygons(lbr_2, col = "gray80"))
+      
+      bulbasaur <- seq(0.01, 100, by = 10)
+      m10 <- levelplot(gpw4test, at = bulbasaur, main = "Lbr District Lvl Scale 0.01-100 breaks of 10") + layer(sp.polygons(lbr_2, col = "gray80"))
+      
+      charmander <- seq(0.01, 250, by = 10)
+      m11 <- levelplot(gpw4test, at = charmander, main = "Lbr District Lvl Scale 0.01-250 breaks of 10") + layer(sp.polygons(lbr_2, col = "gray80"))
+      
+      squirtle <- seq(0.01, 500, by = 10)
+      m12 <- levelplot(gpw4test, at = squirtle, main = "Lbr District Lvl Scale 0.01-500 breaks of 10") + layer(sp.polygons(lbr_2, col = "gray80"))
+      
+      comparison<-arrangeGrob(m7,m10,m11,m5,m9,m12,nrow=3,ncol=2)
+      ggsave("lbr_com_shp_dist.png",comparison,width = 22, height = 20, dpi = 150)
+      
+    ##Clan##
+      piplup <- seq(.01, 100, by = 5)
+      m13 <- levelplot(gpw4test, at=piplup, main = "Lbr Clan Lvl Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_3, col = "gray80"))
+      
+      turtwig <- seq(0.01, 250, by = 5)
+      m14 <- levelplot(gpw4test, at = turtwig, main = "Lbr Clan Lvl Scale 0.01-250 breaks of 5") + layer(sp.polygons(lbr_3, col = "gray80"))
+      
+      chimchar <- seq(0.01, 500, by = 5)
+      m15 <- levelplot(gpw4test, at = chimchar, main = "Lbr Clan Lvl Scale 0.01-500 breaks of 5") + layer(sp.polygons(lbr_3, col = "gray80"))
+      
+      bulbasaur <- seq(0.01, 100, by = 10)
+      m16 <- levelplot(gpw4test, at = bulbasaur, main = "Lbr Clan Lvl Scale 0.01-100 breaks of 10") + layer(sp.polygons(lbr_3, col = "gray80"))
+      
+      charmander <- seq(0.01, 250, by = 10)
+      m17 <- levelplot(gpw4test, at = charmander, main = "Lbr Clan Lvl Scale 0.01-250 breaks of 10") + layer(sp.polygons(lbr_3, col = "gray80"))
+      
+      squirtle <- seq(0.01, 500, by = 10)
+      m18 <- levelplot(gpw4test, at = squirtle, main = "Lbr Clan Lvl Scale 0.01-500 breaks of 10") + layer(sp.polygons(lbr_3, col = "gray80"))
+      
+      comparison<-arrangeGrob(m13,m16,m14,m17,m15,m18,nrow=3,ncol=2)
+      ggsave("lbr_com_shp_clan.png",comparison,width = 22, height = 20, dpi = 150)
+      
+      
+      
+    
+    
+    
+    
       # e <- extract(gpw4test2, lbr_1, fun=mean)
       # plot(e)
       # Could be useful for Shapefiles to Raster/Raster plotting: 
