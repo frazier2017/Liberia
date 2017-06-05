@@ -1,6 +1,9 @@
 rm(list=ls())
 setwd("~/GitHub/Liberia")
 
+install.packages("mapdata")
+install.packages("rgl")
+
 library(rgdal)
 library(dplyr)
 library(rgeos)
@@ -12,6 +15,11 @@ library(sp)
 library(foreign)
 library(knitr)
 library(gridExtra)
+library(rasterVis)
+library(colorspace)
+library(mapdata)
+library(rgl)
+library(scales)
 
 ##
 
@@ -138,7 +146,7 @@ clan_f<-fortify(clan)
 #### V2. GPW4 ####
   
   ### LOAD GWP4 DATA ###
-  #gpw4<-raster("~/Documents/W_M/Year_1/2017_Summer/Monroe_Project/gpw-v4-population-count_2010.tif")
+  gpw4<-raster("~/Documents/W_M/Year_1/2017_Summer/Monroe_Project/gpw-v4-population-count_2010.tif")
   #gpw4
   #plot(gpw4)
   
@@ -181,9 +189,9 @@ clan_f<-fortify(clan)
   
   
   ### MAKE MAPS ###
-  map0<-ggplot(country_gpw4_f, aes(x=long, y = lat))+
-             geom_map(data = country_gpw4_f, map=country_gpw4_f,aes(x=long, y=lat,map_id=id,fill=pop))+
-             scale_fill_gradient(low="yellow",high="red",space="Lab")
+  # map0<-ggplot(country_gpw4_f, aes(x=long, y = lat))+
+  #           geom_map(data = country_gpw4_f, map=country_gpw4_f,aes(x=long, y=lat,map_id=id,fill=pop))+
+  #           scale_fill_gradient(low="yellow",high="red",space="Lab")
 
   
   # map1<-ggplot(cnty_gpw4_f, aes(x=long, y = lat))+
@@ -230,9 +238,9 @@ clan_f<-fortify(clan)
           legend.position = c(.1,.2))+
     ggtitle("District Pop. (gpw4)")
   
-  map3<-ggplot(clan_gpw4_f, aes(x=long, y = lat))+
-    geom_map(data = clan_gpw4_f, map=clan_gpw4_f,aes(x=long, y=lat,map_id=id,fill=pop))+
-    scale_fill_gradient(low="yellow",high="red",space="Lab")
+  # map3<-ggplot(clan_gpw4_f, aes(x=long, y = lat))+
+  #   geom_map(data = clan_gpw4_f, map=clan_gpw4_f,aes(x=long, y=lat,map_id=id,fill=pop))+
+  #   scale_fill_gradient(low="yellow",high="red",space="Lab")
   map3
   
   map3<-ggplot()+
@@ -766,9 +774,27 @@ dev.off()
 
 
 ####Testing 2.0#####
-gpw4<-raster("gpw-v4-population-count_2010.tif")
-gpw4test <- crop(gpw4, extent(-14, -5, 4.2, 13))
+f<-list.files(path= "~/Documents/W_M/Year_1/2017_Summer/Monroe_Project",pattern="*.tif",recursive=TRUE)
+files<-lapply(f, function(i) paste("~/Documents/W_M/Year_1/2017_Summer/Monroe_Project/",i,sep=""))
+files<-files[c(1,3)]
+gpw4<-stack(lapply(files, function(i) raster(i,band=1)))
+test<-raster(files[[2]])
+test_val<-getValues(test)
+test_val[10000:10000000]
+files
 
+plot(gpw4)
+getValues(gpw4,3)
+df<-getValues(gpw4test)
+df
+gpw4@data
+gpw4@ncols
+gpw4@data@values
+x<-rasterToPolygons(gpw4test)
+y<-fortify(x)
+x@data
+gpw4test <- crop(gpw4, extent(-14, -5, 4.2, 13))
+plot(gpw4test)
 levelplot(gpw4test) + layer(sp.polygons(lbr_1))
 
 piplup <- con(raster!=0, gpw4test)
@@ -779,14 +805,63 @@ myTheme <- rasterTheme(region=sequential_hcl(10, power=2.2))
 lbrbluelvl <- levelplot(gpw4test, par.settings = myTheme, contour = TRUE)
 lbrbluelvl
 
-lbrgreylvl <- levelplot(gpw4test,col.regions = grey(0:100/100), layers=1)      lbrgreylvl
+lbrgreylvl <- levelplot(gpw4test,col.regions = grey(0:100/100), layers=1)      
+lbrgreylvl
 
 gpw4test@data@min
 gpw4test@data@min <- 0
 
 ##Scale setting, by = breaks in scale)
 piplup <- seq(.01, 100, by = 5)
-m1 <- levelplot(gpw4test, at=piplup, main = "Scale 0.01-100 breaks of 5")
+m1 <- levelplot(gpw4test, at=piplup, main = "Scale 0.01-100 breaks of 5")+layer(sp.polygons(clan))
+m1
+
+plot1<-gplot(gpw4test)+geom_tile(aes(fill = value))
+plot1
+extent(country)
+gpw4_lbr<-crop(gpw4,extent(country))
+gpw4_lbr<-mask(gpw4_lbr,country)
+
+x<-rasterToPolygons(gpw4_lbr)
+y<-fortify(x)
+gpw4_lbr
+
+plot2<-gplot(gpw4_lbr)+
+  geom_tile(aes(fill = log(value)))+
+  scale_fill_gradientn(colours = c("grey100","coral","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
+  theme(text = element_text(color = "white"),
+        rect = element_rect(fill = "grey35", color = "grey35"),
+        plot.background = element_rect(fill = "grey35", color = "grey35"),
+        panel.background = element_rect(fill = "grey35", color = "grey35"),
+        plot.title = element_text(),
+        panel.grid = element_blank(),
+        panel.border = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = c(.1,.2))+
+  ggtitle("Plot (gpw4)")
+plot2
+colors()
+
+map1<-ggplot()+
+  geom_map(data=cnty_gpw4_f,map=cnty_gpw4_f,aes(x=long,y=lat,map_id=id,fill=log(pop)))+
+  scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
+  geom_map(data=cnty_gpw4_f,map=cnty_gpw4_f,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+  theme(text = element_text(color = "white"),
+        rect = element_rect(fill = "grey35", color = "grey35"),
+        plot.background = element_rect(fill = "grey35", color = "grey35"),
+        panel.background = element_rect(fill = "grey35", color = "grey35"),
+        plot.title = element_text(),
+        panel.grid = element_blank(),
+        panel.border = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = c(.1,.2))+
+  ggtitle("County Pop. (gpw4)")
+
+
 
 turtwig <- seq(0.01, 250, by = 5)
 m2 <- levelplot(gpw4test, at = turtwig, main = "Scale 0.01-250 breaks of 5")
