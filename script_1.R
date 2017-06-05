@@ -1,5 +1,6 @@
 #Raster: Crop, Raster, Stack...Look into Raster Functions KDE in a different package; also look up set up github in RStudio
 #https://oscarperpinan.github.io/rastervis/FAQ.html#breaks see after lunch for shp to ras
+#1.Make 3-D visualization (Perspective plot) 2. overlay the shapefile of Liberia
 rm(list=ls())
 setwd("~/GitHub/Liberia")
 
@@ -16,6 +17,7 @@ library(knitr)
 library(gridExtra)
 library(rasterVis)
 library(colorspace)
+library(mapdata)
 ##
 
 #### IMPORT SHAPEFILES ####
@@ -570,7 +572,7 @@ dev.off()
       gpw4test@data@min
       gpw4test@data@min <- 0
       
-        ##Scale setting, by = breaks in scale)
+      ##Scale setting, by = breaks in scale)
         piplup <- seq(.01, 100, by = 5)
         m1 <- levelplot(gpw4test, at=piplup, main = "Scale 0.01-100 breaks of 5")
         
@@ -595,7 +597,20 @@ dev.off()
         mew <- seq(1, 20, by = 1)
         m7 <- levelplot(gpw4test, at = mew, main = "Liberia Scale 1-20 breaks of 1")
         m7
-        ##
+        
+        
+      ##Working Overlaying Shapefiles: Must load in the shapefile using readOGR then use spTransform then you can plot
+        m8 <- levelplot(gpw4test, at = mew) + layer(sp.polygons(lbr_0))
+        m8
+        
+        m9 <- levelplot(gpw4test, at = piplup) + layer(sp.polygons(lbr_0))
+        m9
+      ##Adjusting bounding box to fit Liberia##
+        gpw4<-raster("gpw-v4-population-count_2010.tif")
+        gpw4test <- crop(gpw4, extent(-11.55, -7.3, 4.2, 8.6)) #xmin, xmax, ymin, ymax 
+        m10 <- levelplot(gpw4test, at = piplup, main = "Scale 0.01-100 breaks of 5 \n with Liberia border overlay") + layer(sp.polygons(lbr_0))
+        m10
+        
      
       # e <- extract(gpw4test2, lbr_1, fun=mean)
       # plot(e)
