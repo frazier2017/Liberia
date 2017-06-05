@@ -547,20 +547,27 @@ dev.off()
       gpw4test_aggre <- aggregate(gpw4test, fact = 10)
       plot(gpw4test_aggre, col=topo.colors(10))
     
-    ##Testing##
+####Testing#####
       levelplot(gpw4test) + layer(sp.polygons(lbr_1))
     
       
       ##
       proj <- CRS('+proj=utm +zone=29 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0')
       
-      lbr_11 <- readShapeLines('~/GitHub/Liberia/shapefiles/liberia_revised.shp', proj4string = proj)
+      lbr_11 <- readShapeLines('~/GitHub/Liberia/shapefiles/liberia_revised.shp')
       
       
       p <- levelplot(gpw4test, layers=1)
       p + layer (sp.lines(lbr_11, lwd=0.8, col='white'))
       p
     
+      lbr_0<-readOGR(dsn="shapefiles", layer="liberia_revised",stringsAsFactors=FALSE, verbose=FALSE)
+      
+      NPWS.reserves <- readShapePoly("liberia_resvised.shp", proj4 = GDA94)
+      
+      NPWS.raster <- shp2raster(shp = NPWS.reserves[grepl(c("NP|NR"), NPWS.reserves$reservetyp),],
+                                mask.raster = LH.mask, label = "National Parks & Nature Reserves", value = 3,
+                                transform = TRUE, proj.from = GDA94, proj.to = GDA94.56)
       # e <- extract(gpw4test2, lbr_1, fun=mean)
       # plot(e)
       # Could be useful for Shapefiles to Raster/Raster plotting: 
