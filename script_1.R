@@ -1,5 +1,5 @@
 #Raster: Crop, Raster, Stack...Look into Raster Functions KDE in a different package; also look up set up github in RStudio
-#Goal Week of 6/5 changing the scale to exclude values < 0 
+#https://oscarperpinan.github.io/rastervis/FAQ.html#breaks see after lunch for shp to ras
 rm(list=ls())
 setwd("~/GitHub/Liberia")
 
@@ -572,9 +572,30 @@ dev.off()
       
         ##Scale setting, by = breaks in scale)
         piplup <- seq(.01, 100, by = 5)
+        m1 <- levelplot(gpw4test, at=piplup, main = "Scale 0.01-100 breaks of 5")
         
-        levelplot(gpw4test, at=piplup)
+        turtwig <- seq(0.01, 250, by = 5)
+        m2 <- levelplot(gpw4test, at = turtwig, main = "Scale 0.01-250 breaks of 5")
         
+        chimchar <- seq(0.01, 500, by = 5)
+        m3 <- levelplot(gpw4test, at = chimchar, main = "Scale 0.01-500 breaks of 5")
+        
+        bulbasaur <- seq(0.01, 100, by = 10)
+        m4 <- levelplot(gpw4test, at = bulbasaur, main = "Scale 0.01-100 breaks of 10")
+        
+        charmander <- seq(0.01, 250, by = 10)
+        m5 <- levelplot(gpw4test, at = charmander, main = "Scale 0.01-250 breaks of 10")
+        
+        squirtle <- seq(0.01, 500, by = 10)
+        m6 <- levelplot(gpw4test, at = squirtle, main = "Scale 0.01-500 breaks of 10")
+        
+        comparison<-arrangeGrob(m1,m4,m2,m5,m3,m6,nrow=3,ncol=2)
+        ggsave("lbr_com.png",comparison,width = 20, height = 18, dpi = 150)
+        
+        mew <- seq(1, 20, by = 1)
+        m7 <- levelplot(gpw4test, at = mew, main = "Liberia Scale 1-20 breaks of 1")
+        m7
+        ##
      
       # e <- extract(gpw4test2, lbr_1, fun=mean)
       # plot(e)
