@@ -823,8 +823,16 @@ gpw4_lbr<-crop(gpw4,extent(country))
 gpw4_lbr<-mask(gpw4_lbr,country)
 
 x<-rasterToPolygons(gpw4_lbr)
-y<-fortify(x)
+system.time(y<-fortify(x))
+save(y,file = "gpw4_lbr_spdf.RData")
+data<-x@data
+data[,2]<-row.names(data)
+colnames(data)<-c("pop","id")
+z<-left_join(y,data,by="id")
+ggplot()+geom_map(data=country_f,map = country_f,aes(x=long,y=lat,map_id=id))+geom_map(data=z,map=z,aes(x=long,y=lat,map_id=id,fill=log(pop)))
+
 gpw4_lbr
+
 
 plot2<-gplot(gpw4_lbr)+
   geom_tile(aes(fill = log(value)))+
