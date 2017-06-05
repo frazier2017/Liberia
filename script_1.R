@@ -18,6 +18,7 @@ library(gridExtra)
 library(rasterVis)
 library(colorspace)
 library(mapdata)
+library(rgl)
 ##
 
 #### IMPORT SHAPEFILES ####
@@ -442,6 +443,7 @@ dev.off()
 
 ##
 
+
 #### EXPERIMENT ####
   
   africa <- readOGR(dsn="shapefiles", layer="africa", stringsAsFactors=FALSE, verbose=FALSE)
@@ -499,6 +501,7 @@ dev.off()
   scale_fill_gradient(low="red",high="orange",guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")
   
   ##
+  
 #### EXPERIMENTING RASTER GPW4 ####
   
   ###RASTER GPW4###
@@ -553,21 +556,23 @@ dev.off()
     ##Plot based on values
       plot(gpw4test, col=ifelse(value < 0, topo.colors(10)))
     
+      
 ####Testing 2.0#####
       gpw4<-raster("gpw-v4-population-count_2010.tif")
-      gpw4test <- crop(gpw4, extent(-14, -5, 4.2, 13))
+      #gpw4test <- crop(gpw4, extent(-14, -5, 4.2, 13)) ---> updated bbox -11.55, -7.3, 4.2, 8.6
       
       levelplot(gpw4test) + layer(sp.polygons(lbr_1))
       
       piplup <- con(raster!=0, gpw4test)
       
       
-      ##RasterVis 
+      ##RasterVis## 
       myTheme <- rasterTheme(region=sequential_hcl(10, power=2.2))
       lbrbluelvl <- levelplot(gpw4test, par.settings = myTheme, contour = TRUE)
       lbrbluelvl
       
-      lbrgreylvl <- levelplot(gpw4test,col.regions = grey(0:100/100), layers=1)      lbrgreylvl
+      lbrgreylvl <- levelplot(gpw4test,col.regions = grey(0:100/100), layers=1)      
+      lbrgreylvl
       
       gpw4test@data@min
       gpw4test@data@min <- 0
@@ -612,7 +617,8 @@ dev.off()
         m10 <- levelplot(gpw4test, at = piplup, main = "Scale 0.01-100 breaks of 5 \n with Liberia border overlay") + layer(sp.polygons(lbr_0))
         m10
         
-#####LBR Overlay SHP on LEVEL.PLOT####
+        
+####LBR Overlay SHP on LEVEL.PLOT####
   #This section will have some code from other sections so that anyone can just copy paste just this section out
     
     ###READING SHAPEFILES###
@@ -716,3 +722,30 @@ dev.off()
       #https://rpubs.com/alobo/vectorOnraster
       #http://neondataskills.org/R/Plot-Rasters-In-R/
       #
+
+      
+####3D Visualization Testing####      
+
+
+    
+    ###Plot3D in rgl package with RasterVis and Raster###
+    gpw4test1<-raster("gpw-v4-population-count_2010.tif")
+    gpw4test1 <- crop(gpw4, extent(-11.55, -7.3, 4.2, 8.6)) #xmin, xmax, ymin, ymax 
+    plot3D(gpw4test1, useLegend = T, at = piplup, col = terrain.colors(20)) + layer(sp.polygons(lbr_1, col = "gray80"))
+    ##3D Liberia Model /n Scale 0.01-100, breaks every 5 (from piplup)##
+    
+    
+    gpw4<-raster("gpw-v4-population-count_2010.tif") 
+    gpw4test2 <- crop(gpw4, extent (-8.8,-7.2,6.5,7.6))
+    plot3D(gpw4test2, useLegend = T, at = piplup, col = terrain.colors(20))
+    
+    
+    pikachu <- seq(0.01, 1000, by = 5)
+    
+    
+    gpw4test3 <- crop(gpw4, extent (-9,-6.5,6,8))
+    plot3D(gpw4test3, useLegend = T, at = pikachu, col = terrain.colors(20))
+    
+    gpw4test4 <- crop(gpw4, extent (-9,-8.9,6,6.5))
+    plot3D(gpw4test4, useLegend = T, at = pikachu, col = terrain.colors(20))
+    
