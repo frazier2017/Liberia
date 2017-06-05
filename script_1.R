@@ -13,6 +13,7 @@ library(sp)
 library(foreign)
 library(knitr)
 library(gridExtra)
+library(rasterVis)
 
 ##
 
@@ -515,7 +516,7 @@ dev.off()
       # projection(gpw4) <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
       # plot(gpw4)
       
-    ##Setting xmin through y max changes viewing window; display is still the world and not cropped
+    ##Setting xmin through y max changes viewing window; display is still the world and not cropped##
     
       # xmin(gpw4) <- (-11.65)
       # xmax(gpw4) <- (4.25)
@@ -525,7 +526,7 @@ dev.off()
       # gpw4
       # plot(gpw4)
   
-    ##Commands in Raster
+    ##Commands in Raster##
       # hasValues(gpw4)
       # res(gpw4)
       # dim(gpw4)
@@ -535,12 +536,35 @@ dev.off()
       # gpw4test1 <- crop(gpw4, extent(-11.65, 4.25, -7.25, 8.6))
       # plot(gpw4test1)
     
-    ##xmin, xmax, ymin, ymax (-14, -5, 4.2, 13) Fit in Liberia
-    gpw4test <- crop(gpw4, extent(-14, -5, 4.2, 13))
-    plot(gpw4test, axes = F, box = F)
+    ##xmin, xmax, ymin, ymax (-14, -5, 4.2, 13) Fit in Liberia##
+      gpw4test <- crop(gpw4, extent(-14, -5, 4.2, 13))
+      plot(gpw4test, axes = F, box = F, col=topo.colors((10000)))
+      
+      #Scale in Grey#
+        plot(gpw4test, axes = F, box = F, col=grey(1:100/100))
+    
+    ##Changing the Resolution by Aggregating## 
+      gpw4test_aggre <- aggregate(gpw4test, fact = 10)
+      plot(gpw4test_aggre, col=topo.colors(10))
+    
+    ##Testing##
+      levelplot(gpw4test) + layer(sp.polygons(lbr_1))
+    
+      
+      ##
+      proj <- CRS('+proj=utm +zone=29 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0')
+      
+      lbr_11 <- readShapeLines('~/GitHub/Liberia/shapefiles/liberia_revised.shp', proj4string = proj)
+      
+      
+      p <- levelplot(gpw4test, layers=1)
+      p + layer (sp.lines(lbr_11, lwd=0.8, col='white'))
+      p
     
       # e <- extract(gpw4test2, lbr_1, fun=mean)
       # plot(e)
-      # Could be useful for Shapefiles to Raster: https://amywhiteheadresearch.wordpress.com/2014/05/01/shp2raster/
+      # Could be useful for Shapefiles to Raster/Raster plotting: 
+      #https://amywhiteheadresearch.wordpress.com/2014/05/01/shp2raster/
       #https://rpubs.com/alobo/vectorOnraster
-    
+      #http://neondataskills.org/R/Plot-Rasters-In-R/
+      #
