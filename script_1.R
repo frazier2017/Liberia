@@ -1,4 +1,5 @@
 #Raster: Crop, Raster, Stack...Look into Raster Functions KDE in a different package; also look up set up github in RStudio
+#Goal Week of 6/5 changing the scale to exclude values < 0 
 rm(list=ls())
 setwd("~/GitHub/Liberia")
 
@@ -14,7 +15,7 @@ library(foreign)
 library(knitr)
 library(gridExtra)
 library(rasterVis)
-
+library(colorspace)
 ##
 
 #### IMPORT SHAPEFILES ####
@@ -544,30 +545,37 @@ dev.off()
         plot(gpw4test, axes = F, box = F, col=grey(1:100/100))
     
     ##Changing the Resolution by Aggregating## 
-      gpw4test_aggre <- aggregate(gpw4test, fact = 10)
+      gpw4test_aggre <- aggregate(gpw4test, fact = 15)
       plot(gpw4test_aggre, col=topo.colors(10))
+      
+    ##Plot based on values
+      plot(gpw4test, col=ifelse(value < 0, topo.colors(10)))
     
-####Testing#####
+####Testing 2.0#####
+      gpw4<-raster("gpw-v4-population-count_2010.tif")
+      gpw4test <- crop(gpw4, extent(-14, -5, 4.2, 13))
+      
       levelplot(gpw4test) + layer(sp.polygons(lbr_1))
-    
       
-      ##
-      proj <- CRS('+proj=utm +zone=29 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0')
-      
-      lbr_11 <- readShapeLines('~/GitHub/Liberia/shapefiles/liberia_revised.shp')
+      piplup <- con(raster!=0, gpw4test)
       
       
-      p <- levelplot(gpw4test, layers=1)
-      p + layer (sp.lines(lbr_11, lwd=0.8, col='white'))
-      p
-    
-      lbr_0<-readOGR(dsn="shapefiles", layer="liberia_revised",stringsAsFactors=FALSE, verbose=FALSE)
+      ##RasterVis 
+      myTheme <- rasterTheme(region=sequential_hcl(10, power=2.2))
+      lbrbluelvl <- levelplot(gpw4test, par.settings = myTheme, contour = TRUE)
+      lbrbluelvl
       
-      NPWS.reserves <- readShapePoly("liberia_resvised.shp", proj4 = GDA94)
+      lbrgreylvl <- levelplot(gpw4test,col.regions = grey(0:100/100), layers=1)      lbrgreylvl
       
-      NPWS.raster <- shp2raster(shp = NPWS.reserves[grepl(c("NP|NR"), NPWS.reserves$reservetyp),],
-                                mask.raster = LH.mask, label = "National Parks & Nature Reserves", value = 3,
-                                transform = TRUE, proj.from = GDA94, proj.to = GDA94.56)
+      gpw4test@data@min
+      gpw4test@data@min <- 0
+      
+        ##Scale setting, by = breaks in scale)
+        piplup <- seq(.01, 100, by = 5)
+        
+        levelplot(gpw4test, at=piplup)
+        
+     
       # e <- extract(gpw4test2, lbr_1, fun=mean)
       # plot(e)
       # Could be useful for Shapefiles to Raster/Raster plotting: 
