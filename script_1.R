@@ -769,7 +769,8 @@ plot(density(lbr_clan), main = "Clan Weights")
 dev.off()
 
 
-####Testing 2.0#####
+
+#### GPW4 EXTRACTION ####
 
 
 gpw4_2000<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2000.tif")
@@ -792,15 +793,6 @@ growth_00_05<-overlay(gpw4_2000,gpw4_2005,fun=function(r1,r2){return((r2-r1)/r1)
 growth_05_10<-overlay(gpw4_2005,gpw4_2010,fun=function(r1,r2){return((r2-r1)/r1)})
 growth_10_15<-overlay(gpw4_2010,gpw4_2015,fun=function(r1,r2){return((r2-r1)/r1)})
 
-
-values<-gpw4_2000@data@values
-values
-x<-as.matrix(values)
-x<-na.omit(x)
-values<-na.omit(values)
-values[[13614]]
-
-gpw4_2000@data@attributes
 
 data<-cbind(xyFromCell(gpw4_2000,1:ncell(gpw4_2000)),getValues(gpw4_2000))
 data<-na.omit(data)
@@ -843,6 +835,7 @@ class(data2)
 rasterToPolygons
 rasterToPoints
 
+####Testing 2.0#####
 
 f<-list.files(path= "~/Documents/W_M/Year_1/2017_Summer/Monroe_Project",pattern="*.tif",recursive=TRUE)
 files<-lapply(f, function(i) paste("~/Documents/W_M/Year_1/2017_Summer/Monroe_Project/",i,sep=""))
