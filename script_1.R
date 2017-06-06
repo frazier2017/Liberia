@@ -803,8 +803,46 @@ values[[13614]]
 gpw4_2000@data@attributes
 
 data<-cbind(xyFromCell(gpw4_2000,1:ncell(gpw4_2000)),getValues(gpw4_2000))
+data<-na.omit(data)
+colnames(data)<-c("long","lat","pop2000")
+
+data2<-cbind(xyFromCell(gpw4_2005,1:ncell(gpw4_2005)),getValues(gpw4_2005))
+data2<-na.omit(data2)
+colnames(data2)<-c("long","lat","pop2005")
+
+data3<-cbind(xyFromCell(gpw4_2010,1:ncell(gpw4_2010)),getValues(gpw4_2010))
+data3<-na.omit(data3)
+colnames(data3)<-c("long","lat","pop2010")
+
+data4<-cbind(xyFromCell(gpw4_2015,1:ncell(gpw4_2015)),getValues(gpw4_2015))
+data4<-na.omit(data4)
+colnames(data4)<-c("long","lat","pop2015")
+
+data5<-cbind(xyFromCell(growth_00_05,1:ncell(growth_00_05)),getValues(growth_00_05))
+data5<-na.omit(data5)
+colnames(data5)<-c("long","lat","growth05")
+
+data6<-cbind(xyFromCell(growth_05_10,1:ncell(growth_05_10)),getValues(growth_05_10))
+data6<-na.omit(data6)
+colnames(data6)<-c("long","lat","growth10")
+
+data7<-cbind(xyFromCell(growth_10_15,1:ncell(growth_10_15)),getValues(growth_10_15))
+data7<-na.omit(data7)
+colnames(data7)<-c("long","lat","growth15")
+
+data_final<-merge(data,data2,by=c("long","lat"))
+data_final<-merge(data_final,data3,by=c("long","lat"))
+data_final<-merge(data_final,data4,by=c("long","lat"))
+data_final<-merge(data_final,data5,by=c("long","lat"))
+data_final<-merge(data_final,data6,by=c("long","lat"))
+data_final<-merge(data_final,data7,by=c("long","lat"))
+
+class(data)
+class(data2)
 
 rasterToPolygons
+rasterToPoints
+
 
 f<-list.files(path= "~/Documents/W_M/Year_1/2017_Summer/Monroe_Project",pattern="*.tif",recursive=TRUE)
 files<-lapply(f, function(i) paste("~/Documents/W_M/Year_1/2017_Summer/Monroe_Project/",i,sep=""))
