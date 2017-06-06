@@ -1,8 +1,9 @@
 rm(list=ls())
 setwd("~/GitHub/Liberia")
 
-install.packages("mapdata")
-install.packages("rgl")
+#install.packages("mapdata")
+#install.packages("rgl",dependencies = T)
+#install.packages("XQuartz")
 
 library(rgdal)
 library(dplyr)
@@ -774,6 +775,16 @@ dev.off()
 
 
 ####Testing 2.0#####
+
+gpw4_2000<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2000.tif")
+gpw4_2005<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2005.tif")
+gpw4_2010<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2010.tif")
+gpw4_2015<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2015.tif")
+r2<-gpw4_2005-gpw4_2000
+
+gpw4_2000[,200]
+
+
 f<-list.files(path= "~/Documents/W_M/Year_1/2017_Summer/Monroe_Project",pattern="*.tif",recursive=TRUE)
 files<-lapply(f, function(i) paste("~/Documents/W_M/Year_1/2017_Summer/Monroe_Project/",i,sep=""))
 files<-files[c(1,3)]
@@ -812,7 +823,7 @@ gpw4test@data@min
 gpw4test@data@min <- 0
 
 ##Scale setting, by = breaks in scale)
-piplup <- seq(.01, 100, by = 5)
+piplup <- seq(1, 100, by = 1) + seq(101,3000,by=50)
 m1 <- levelplot(gpw4test, at=piplup, main = "Scale 0.01-100 breaks of 5")+layer(sp.polygons(clan))
 m1
 
