@@ -828,6 +828,14 @@ data_final<-merge(data_final,data4,by=c("long","lat"))
 data_final<-merge(data_final,data5,by=c("long","lat"))
 data_final<-merge(data_final,data6,by=c("long","lat"))
 data_final<-merge(data_final,data7,by=c("long","lat"))
+data_final[,10]<-1:nrow(data_final)
+colnames(data_final)[10]<-"id"
+
+plot.new()
+polygon(x=country_f$long,y=country_f$lat)
+points(x=data_final$long,y=data_final$lat,col = data_final$pop2000)
+
+ggplot()+geom_map(data=country_f,map=country_f,aes(x=long,y=lat,map_id=id))+geom_point(data=data_final,mapping=aes(x=long,y=lat,fill=log(pop2005)),size=.000000000000000000000000000000000001)
 
 class(data)
 class(data2)
