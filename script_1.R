@@ -30,11 +30,6 @@ cnty<-readOGR(dsn = "shapefiles",layer="counties",stringsAsFactors = FALSE,verbo
 dist<-readOGR(dsn="shapefiles",layer="districts", stringsAsFactors = FALSE,verbose = FALSE)
 clan<-readOGR(dsn="shapefiles",layer="clans", stringsAsFactors = FALSE,verbose = FALSE)
 
-proj4string(country)
-proj4string(cnty)
-proj4string(dist)
-proj4string(clan)
-
 country<-spTransform(country, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 cnty<-spTransform(cnty, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 dist<-spTransform(dist, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
@@ -776,14 +771,40 @@ dev.off()
 
 ####Testing 2.0#####
 
+
 gpw4_2000<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2000.tif")
+gpw4_2000<-crop(gpw4_2000,extent(country))
+gpw4_2000<-mask(gpw4_2000,country)
+
 gpw4_2005<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2005.tif")
+gpw4_2005<-crop(gpw4_2005,extent(country))
+gpw4_2005<-mask(gpw4_2005,country)
+
 gpw4_2010<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2010.tif")
+gpw4_2010<-crop(gpw4_2010,extent(country))
+gpw4_2010<-mask(gpw4_2010,country)
+
 gpw4_2015<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2015.tif")
-r2<-gpw4_2005-gpw4_2000
+gpw4_2015<-crop(gpw4_2015,extent(country))
+gpw4_2015<-mask(gpw4_2015,country)
 
-gpw4_2000[,200]
+growth_00_05<-overlay(gpw4_2000,gpw4_2005,fun=function(r1,r2){return((r2-r1)/r1)})
+growth_05_10<-overlay(gpw4_2005,gpw4_2010,fun=function(r1,r2){return((r2-r1)/r1)})
+growth_10_15<-overlay(gpw4_2010,gpw4_2015,fun=function(r1,r2){return((r2-r1)/r1)})
 
+
+values<-gpw4_2000@data@values
+values
+x<-as.matrix(values)
+x<-na.omit(x)
+values<-na.omit(values)
+values[[13614]]
+
+gpw4_2000@data@attributes
+
+data<-cbind(xyFromCell(gpw4_2000,1:ncell(gpw4_2000)),getValues(gpw4_2000))
+
+rasterToPolygons
 
 f<-list.files(path= "~/Documents/W_M/Year_1/2017_Summer/Monroe_Project",pattern="*.tif",recursive=TRUE)
 files<-lapply(f, function(i) paste("~/Documents/W_M/Year_1/2017_Summer/Monroe_Project/",i,sep=""))
@@ -804,7 +825,7 @@ gpw4@data@values
 x<-rasterToPolygons(gpw4test)
 y<-fortify(x)
 x@data
-gpw4test <- crop(gpw4, extent(-14, -5, 4.2, 13))
+gpw4test <- crop(gpw4_2010, extent(-14, -5, 4.2, 13))
 plot(gpw4test)
 levelplot(gpw4test) + layer(sp.polygons(lbr_1))
 
@@ -816,15 +837,18 @@ myTheme <- rasterTheme(region=sequential_hcl(10, power=2.2))
 lbrbluelvl <- levelplot(gpw4test, par.settings = myTheme, contour = TRUE)
 lbrbluelvl
 
-lbrgreylvl <- levelplot(gpw4test,col.regions = grey(0:100/100), layers=1)      
+lbrgreylvl <- levelplot(gpw4test,col.regions = blue(0:1000/1000), layers=1)      
 lbrgreylvl
 
 gpw4test@data@min
 gpw4test@data@min <- 0
 
 ##Scale setting, by = breaks in scale)
-piplup <- seq(1, 100, by = 1) + seq(101,3000,by=50)
-m1 <- levelplot(gpw4test, at=piplup, main = "Scale 0.01-100 breaks of 5")+layer(sp.polygons(clan))
+a<-seq(1, 500, by = 2)
+b<-seq(501,3000,by=10)
+c<-c(a,b)
+d<-seq(1,3000,by=1)
+m1 <- levelplot(gpw4test,at=c,col.regions=heat.colors(500,alpha=1))
 m1
 
 plot1<-gplot(gpw4test)+geom_tile(aes(fill = value))
