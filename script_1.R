@@ -837,22 +837,33 @@ points(x=data_final$long,y=data_final$lat,col = data_final$pop2000)
 
 ggplot()+geom_map(data=country_f,map=country_f,aes(x=long,y=lat,map_id=id))+geom_point(data=data_final,mapping=aes(x=long,y=lat,fill=log(pop2005)),size=.000000000000000000000000000000000001)
 
+x<-get_map("liberia")
+
+city_points<-read.csv("liberia_city_names.csv")
+city_points<-distinct(city_points,Latitude,Longitude,.keep_all = T)
+
+load("comNames.RData")
+
+win<-as(country,"owin")
+ppp<-ppp(data_final$long,data_final$lat,marks=data_final$pop2010,window=win)
+ppp2<-as.ppp(data_final,W=win)
+plot.ppp(ppp,cols=ppp$marks)
+plot(density(ppp,1))
+
+
+city_points[,8]<-paste(city_points[,6],city_points[,7])
+city_points2<-rownames(city_points[which(unique(city_points$V8))])
+city_points3<-duplicated(city_points)
+city_points<-subset(city_points,unique(city_points$V8))
+
+gplot(gpw4_2000)+geom_map(data=country_f,map=country_f,aes(x=long,y=lat,map_id=id))+geom_tile(aes(fill = value))
+gplot(growth_00_05)+geom_map(data=country_f,map=country_f,aes(x=long,y=lat,map_id=id))+geom_tile(aes(fill = value))+geom_point(data=city_points2,aes(x=Longitude,y=Latitude),cex=.01)
+
 class(data)
 class(data2)
 
-rasterToPolygons
-rasterToPoints
 
 ####Testing 2.0#####
-
-f<-list.files(path= "~/Documents/W_M/Year_1/2017_Summer/Monroe_Project",pattern="*.tif",recursive=TRUE)
-files<-lapply(f, function(i) paste("~/Documents/W_M/Year_1/2017_Summer/Monroe_Project/",i,sep=""))
-files<-files[c(1,3)]
-gpw4<-stack(lapply(files, function(i) raster(i,band=1)))
-test<-raster(files[[2]])
-test_val<-getValues(test)
-test_val[10000:10000000]
-files
 
 plot(gpw4)
 getValues(gpw4,3)
