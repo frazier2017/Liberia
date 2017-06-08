@@ -1,7 +1,6 @@
-#Raster: Crop, Raster, Stack...Look into Raster Functions KDE in a different package; also look up set up github in RStudio
-#https://oscarperpinan.github.io/rastervis/FAQ.html#breaks see after lunch for shp to ras
-#1.Make 3-D visualization (Perspective plot) 2. overlay the shapefile of Liberia
-rm(list=ls())
+#To do: 1. Recheck the Liberia plots for growth rate for the one white spot
+#2. Create 3D and 2D maps to anaylze the population overtime in those regions encompasses not only Liberia (2d levelplots to get scales and 3d for visiualization)
+#3. If time is availible screenshot and add scales to 3D maps from 2D
 setwd("~/GitHub/Liberia")
 
 library(rgdal)
@@ -19,6 +18,8 @@ library(rasterVis)
 library(colorspace)
 library(mapdata)
 library(rgl)
+library(plot3Drgl)
+library(plotly)
 ##
 
 #### IMPORT SHAPEFILES ####
@@ -639,75 +640,126 @@ dev.off()
     
     ###READING GPW AND CROP###    
     gpw4<-raster("gpw-v4-population-count_2010.tif")
-    gpw4 <- crop(gpw4, extent(-14, -5, 4.2, 13))
+    gpw4test<- crop(gpw4, extent(-11.55, -7.3, 4.2, 8.6)) #-11.55, -7.3, 4.2, 8.6
         
-    ###PLOTTING###
+    gpw42010<-raster("gpw-v4-population-count_2010.tif")
+    gpw42005<-raster("gpw-v4-population-count_2005.tif")
+    gpw42000<-raster("gpw-v4-population-count_2000.tif")
+    gpw42015<-raster("gpw-v4-population-count_2015.tif")
     
-    ##County##
-      piplup <- seq(.01, 100, by = 5)
-      m1 <- levelplot(gpw4test, at=piplup, main = "Lbr County Lvl Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_1, col = "gray80"))
+    ###PLOTTING###
+    ##2000-2015##
+    gpw42000<- crop(gpw42000, extent(-11.55, -7.3, 4.2, 8.6))
+    m2000 <- levelplot(gpw42000,at=piplup, main = "2000", col.regions=terrain.colors(25)) + layer(sp.polygons(lbr_1, col = "black"))
+    
+    
+    gpw42005<- crop(gpw42005, extent(-11.55, -7.3, 4.2, 8.6))
+    m2005 <- levelplot(gpw42005,at=piplup, main = "2005", col.regions=terrain.colors(25)) + layer(sp.polygons(lbr_1, col = "black"))
+    
+    
+    gpw42010<- crop(gpw42010, extent(-11.55, -7.3, 4.2, 8.6))
+    m2010 <- levelplot(gpw42010,at=piplup, main = "2010", col.regions=terrain.colors(25)) + layer(sp.polygons(lbr_1, col = "black"))
+    
+    
+    gpw42015<- crop(gpw42015, extent(-11.55, -7.3, 4.2, 8.6))
+    m2015 <- levelplot(gpw42015,at=piplup, main = "2015", col.regions=terrain.colors(25)) + layer(sp.polygons(lbr_1, col = "black"))
+    
+    yrcom00_15_.01_to_100_by_5 <- arrangeGrob(m2000,m2005,m2010,m2015,nrow=2,ncol=2)
+    ggsave("lbr_com_shp_rcom00_15_.01_to_100_by_5.png",yrcom00_15_.01_to_100_by_5,width = 26, height = 24, dpi = 150)
+    
+    ##Growth Rate##
+    extent(country)
+    gpw42000<-crop(gpw42000,extent(country))
+    gpw42000<-mask(gpw42000,country)
+    gpw42005<-crop(gpw42005,extent(country))
+    gpw42005<-mask(gpw42005,country)
+    gpw42010<-crop(gpw42010,extent(country))
+    gpw42010<-mask(gpw42010,country)
+    gpw42015<-crop(gpw42015,extent(country))
+    gpw42015<-mask(gpw42015,country)
+    
+    r00_15 <- (gpw42015-gpw42000)/(gpw42000)
+    r00_15m <- levelplot(r00_15, col.regions=heat.colors(20), main = "Lbr Growth Rate 2000-2015") + layer(sp.polygons(lbr_0, col = "black"))
+    
+    r00_05 <- (gpw42005-gpw42000)/(gpw42000)
+    r00_05m <- levelplot(r00_05, col.regions=heat.colors(20), main = "Lbr Growth Rate 2000-2005") + layer(sp.polygons(lbr_0, col = "black"))
+    
+    
+    r05_10 <- (gpw42010-gpw42005)/(gpw42005)
+    r05_10m <- levelplot(r05_10, col.regions=heat.colors(20), main = "Lbr Growth Rate 2005-2010") + layer(sp.polygons(lbr_0, col = "black"))
+    
+    
+    r10_15 <- (gpw42015-gpw42010)/(gpw42010)
+    r10_15m <- levelplot(r10_15, col.regions=heat.colors(20), main = "Lbr Growth Rate 2010-2015") + layer(sp.polygons(lbr_0, col = "black"))
+    
+    comparison_gr<-arrangeGrob(r00_15m,r00_05m,r05_10m,r10_15m, nrow = 2, ncol = 2)
+    ggsave("lbr_com_GR_00_15.png",comparison_gr,width = 26, height = 24, dpi = 150)
       
+    ##County##
+      piplup <- seq(0.01, 100, by = 5)
+      m1 <- levelplot(gpw4test, at=piplup, col.regions=terrain.colors(20), main = "Lbr County Lvl Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_1, col = "black"))
+      m1
       turtwig <- seq(0.01, 250, by = 5)
-      m2 <- levelplot(gpw4test, at = turtwig, main = "Lbr County Lvl Scale 0.01-250 breaks of 5") + layer(sp.polygons(lbr_1, col = "gray80"))
+      m2 <- levelplot(gpw4test, at = turtwig, col.regions=terrain.colors(20), main = "Lbr County Lvl Scale 0.01-250 breaks of 5") + layer(sp.polygons(lbr_1, col = "black"))
       
       chimchar <- seq(0.01, 500, by = 5)
-      m3 <- levelplot(gpw4test, at = chimchar, main = "Lbr County Lvl Scale 0.01-500 breaks of 5") + layer(sp.polygons(lbr_1, col = "gray80"))
+      m3 <- levelplot(gpw4test, at = chimchar, col.regions=terrain.colors(20), main = "Lbr County Lvl Scale 0.01-500 breaks of 5") + layer(sp.polygons(lbr_1, col = "black"))
       
       bulbasaur <- seq(0.01, 100, by = 10)
-      m4 <- levelplot(gpw4test, at = bulbasaur, main = "Lbr County Lvl Scale 0.01-100 breaks of 10") + layer(sp.polygons(lbr_1, col = "gray80"))
+      m4 <- levelplot(gpw4test, at = bulbasaur, col.regions=terrain.colors(20), main = "Lbr County Lvl Scale 0.01-100 breaks of 10") + layer(sp.polygons(lbr_1, col = "black"))
       
       charmander <- seq(0.01, 250, by = 10)
-      m5 <- levelplot(gpw4test, at = charmander, main = "Lbr County Lvl Scale 0.01-250 breaks of 10") + layer(sp.polygons(lbr_1, col = "gray80"))
+      m5 <- levelplot(gpw4test, at = charmander, col.regions=terrain.colors(20), main = "Lbr County Lvl Scale 0.01-250 breaks of 10") + layer(sp.polygons(lbr_1, col = "black"))
       
       squirtle <- seq(0.01, 500, by = 10)
-      m6 <- levelplot(gpw4test, at = squirtle, main = "Lbr County Lvl Scale 0.01-500 breaks of 10") + layer(sp.polygons(lbr_1, col = "gray80"))
+      m6 <- levelplot(gpw4test, at = squirtle, col.regions=terrain.colors(20), main = "Lbr County Lvl Scale 0.01-500 breaks of 10") + layer(sp.polygons(lbr_1, col = "gray80"))
       
       comparison<-arrangeGrob(m1,m4,m2,m5,m3,m6,nrow=3,ncol=2)
-      ggsave("lbr_com_shp_cnty.png",comparison,width = 22, height = 20, dpi = 150)
+      ggsave("lbr_com_shp_cntyv2.png",comparison,width = 22, height = 20, dpi = 150)
     
     ##Districts##
       piplup <- seq(.01, 100, by = 5)
-      m7 <- levelplot(gpw4test, at=piplup, main = "Lbr District Lvl Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_2, col = "gray80"))
+      m7 <- levelplot(gpw4test, at=piplup, col.regions=terrain.colors(20), main = "Lbr District Lvl Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_2, col = "black"))
       
       turtwig <- seq(0.01, 250, by = 5)
-      m8 <- levelplot(gpw4test, at = turtwig, main = "Lbr District Lvl Scale 0.01-250 breaks of 5") + layer(sp.polygons(lbr_2, col = "gray80"))
+      m8 <- levelplot(gpw4test, at = turtwig, col.regions=terrain.colors(20), main = "Lbr District Lvl Scale 0.01-250 breaks of 5") + layer(sp.polygons(lbr_2, col = "black"))
       
       chimchar <- seq(0.01, 500, by = 5)
-      m9 <- levelplot(gpw4test, at = chimchar, main = "Lbr District Lvl Scale 0.01-500 breaks of 5") + layer(sp.polygons(lbr_2, col = "gray80"))
+      m9 <- levelplot(gpw4test, at = chimchar, col.regions=terrain.colors(20), main = "Lbr District Lvl Scale 0.01-500 breaks of 5") + layer(sp.polygons(lbr_2, col = "black"))
       
       bulbasaur <- seq(0.01, 100, by = 10)
-      m10 <- levelplot(gpw4test, at = bulbasaur, main = "Lbr District Lvl Scale 0.01-100 breaks of 10") + layer(sp.polygons(lbr_2, col = "gray80"))
+      m10 <- levelplot(gpw4test, at = bulbasaur, col.regions=terrain.colors(20), main = "Lbr District Lvl Scale 0.01-100 breaks of 10") + layer(sp.polygons(lbr_2, col = "black"))
       
       charmander <- seq(0.01, 250, by = 10)
-      m11 <- levelplot(gpw4test, at = charmander, main = "Lbr District Lvl Scale 0.01-250 breaks of 10") + layer(sp.polygons(lbr_2, col = "gray80"))
+      m11 <- levelplot(gpw4test, at = charmander, col.regions=terrain.colors(20), main = "Lbr District Lvl Scale 0.01-250 breaks of 10") + layer(sp.polygons(lbr_2, col = "black"))
       
       squirtle <- seq(0.01, 500, by = 10)
-      m12 <- levelplot(gpw4test, at = squirtle, main = "Lbr District Lvl Scale 0.01-500 breaks of 10") + layer(sp.polygons(lbr_2, col = "gray80"))
+      m12 <- levelplot(gpw4test, at = squirtle, col.regions=terrain.colors(20), main = "Lbr District Lvl Scale 0.01-500 breaks of 10") + layer(sp.polygons(lbr_2, col = "black"))
       
-      comparison<-arrangeGrob(m7,m10,m11,m5,m9,m12,nrow=3,ncol=2)
-      ggsave("lbr_com_shp_dist.png",comparison,width = 22, height = 20, dpi = 150)
-      
+       comparison<-arrangeGrob(m7,m10,m11,m5,m9,m12,nrow=3,ncol=2)
+       ggsave("lbr_com_shp_dist.png",comparison,width = 22, height = 20, dpi = 150)
+       
     ##Clan##
       piplup <- seq(.01, 100, by = 5)
-      m13 <- levelplot(gpw4test, at=piplup, main = "Lbr Clan Lvl Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_3, col = "gray80"))
+      m13 <- levelplot(gpw4test, at=piplup, col.regions=terrain.colors(20), main = "Lbr Clan Lvl Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_3))
       
       turtwig <- seq(0.01, 250, by = 5)
-      m14 <- levelplot(gpw4test, at = turtwig, main = "Lbr Clan Lvl Scale 0.01-250 breaks of 5") + layer(sp.polygons(lbr_3, col = "gray80"))
+      m14 <- levelplot(gpw4test, at = turtwig, col.regions=terrain.colors(20), main = "Lbr Clan Lvl Scale 0.01-250 breaks of 5") + layer(sp.polygons(lbr_3, col = "black"))
       
       chimchar <- seq(0.01, 500, by = 5)
-      m15 <- levelplot(gpw4test, at = chimchar, main = "Lbr Clan Lvl Scale 0.01-500 breaks of 5") + layer(sp.polygons(lbr_3, col = "gray80"))
+      m15 <- levelplot(gpw4test, at = chimchar, col.regions=terrain.colors(20), main = "Lbr Clan Lvl Scale 0.01-500 breaks of 5") + layer(sp.polygons(lbr_3, col = "black"))
       
       bulbasaur <- seq(0.01, 100, by = 10)
-      m16 <- levelplot(gpw4test, at = bulbasaur, main = "Lbr Clan Lvl Scale 0.01-100 breaks of 10") + layer(sp.polygons(lbr_3, col = "gray80"))
+      m16 <- levelplot(gpw4test, at = bulbasaur, col.regions=terrain.colors(20), main = "Lbr Clan Lvl Scale 0.01-100 breaks of 10") + layer(sp.polygons(lbr_3, col = "black"))
       
       charmander <- seq(0.01, 250, by = 10)
-      m17 <- levelplot(gpw4test, at = charmander, main = "Lbr Clan Lvl Scale 0.01-250 breaks of 10") + layer(sp.polygons(lbr_3, col = "gray80"))
+      m17 <- levelplot(gpw4test, at = charmander, col.regions=terrain.colors(20), main = "Lbr Clan Lvl Scale 0.01-250 breaks of 10") + layer(sp.polygons(lbr_3, col = "black"))
       
       squirtle <- seq(0.01, 500, by = 10)
-      m18 <- levelplot(gpw4test, at = squirtle, main = "Lbr Clan Lvl Scale 0.01-500 breaks of 10") + layer(sp.polygons(lbr_3, col = "gray80"))
+      m18 <- levelplot(gpw4test, at = squirtle, col.regions=terrain.colors(20), main = "Lbr Clan Lvl Scale 0.01-500 breaks of 10") + layer(sp.polygons(lbr_3, col = "black"))
       
-      comparison<-arrangeGrob(m13,m16,m14,m17,m15,m18,nrow=3,ncol=2)
-      ggsave("lbr_com_shp_clan.png",comparison,width = 22, height = 20, dpi = 150)
+       comparison<-arrangeGrob(m13,m16,m14,m17,m15,m18,nrow=3,ncol=2)
+       ggsave("lbr_com_shp_clan.png",comparison,width = 22, height = 20, dpi = 150)
       
       
       
@@ -726,26 +778,452 @@ dev.off()
       
 ####3D Visualization Testing####      
 
-
-    
     ###Plot3D in rgl package with RasterVis and Raster###
-    gpw4test1<-raster("gpw-v4-population-count_2010.tif")
-    gpw4test1 <- crop(gpw4, extent(-11.55, -7.3, 4.2, 8.6)) #xmin, xmax, ymin, ymax 
-    plot3D(gpw4test1, useLegend = T, at = piplup, col = terrain.colors(20)) + layer(sp.polygons(lbr_1, col = "gray80"))
+        gpw4<-raster("gpw-v4-population-count_2010.tif")
+           country <- readOGR(dsn="shapefiles", layer="liberia_revised", stringsAsFactors=FALSE, verbose=FALSE)
+           counties <- readOGR(dsn="shapefiles", layer="counties", stringsAsFactors=FALSE, verbose=FALSE)
+        gpw4test1 <- crop(gpw4, extent(-11.55, -7.3, 4.2, 8.6)) #xmin, xmax, ymin, ymax 
+        gpw4test1 <- crop(gpw4, extent(country)) #xmin, xmax, ymin, ymax 
+        
+    #RasterVis
+        charizard <- seq(1,50, by=1)
+        plot3D(gpw4test1, decorate3d = T, useLegend = TRUE, at = piplup, adjust=T, col=rainbow(20))
+        
+    #Example Below for plot3D
+        # open3d()
+        # x <- sort(rnorm(1000))
+        # y <- rnorm(1000)
+        # z <- rnorm(1000) + atan2(x, y)
+        # plot3d(x, y, z, col = rainbow(1000))
+    
+    #Raster
+        persp(gpw4test1, col=cols)
+        example(persp3D)
+        persp3D(z=gpw4test1, lighting = T, lphi = 90)
+        # Attempted Funtion to assign color values to above function
+        # f <- function(x,y) { r <- sqrt(x^2+y^2); 10 * sin(r)/r }
+        #       z <- outer(x, y, f)
+        #       z[is.na(z)] <- 1
+        #       op <- par(bg = "white")
+        #       zz <- (z[-1,-1] + z[-1,-ncol(z)] + z[-nrow(z),-1] + 
+        #                               z[-nrow(z),-ncol(z)])/4
+        #       cols <- topo.colors(length(zz))
+        #       cols[order(zz)] <- cols
+        
+        
     ##3D Liberia Model /n Scale 0.01-100, breaks every 5 (from piplup)##
     
     
-    gpw4<-raster("gpw-v4-population-count_2010.tif") 
-    gpw4test2 <- crop(gpw4, extent (-8.8,-7.2,6.5,7.6))
-    plot3D(gpw4test2, useLegend = T, at = piplup, col = terrain.colors(20))
+        gpw4<-raster("gpw-v4-population-count_2010.tif") 
+        gpw4test2 <- crop(gpw4, extent (-11.55, -7.3, 4.2, 8.6))
+        plot3D(gpw4test2, useLegend = T, at = piplup, col = terrain.colors(20))
+        
+        
+        pikachu <- seq(0.01, 1000, by = 5)
+        
+        
+        gpw4test3 <- crop(gpw4, extent (-9,-6.5,6,8))
+        plot3D(gpw4test3, useLegend = T, at = pikachu, col = terrain.colors(20))
+        
+        gpw4test4 <- crop(gpw4, extent (-9,-8.9,6,6.5))
+        plot3D(gpw4test4, useLegend = T, at = pikachu, col = terrain.colors(20))
+        
+    ##Plotly testing: Needs to be in the form of numbers/dataframe and not a raster so plotly will not work at the moment 
+        p <- plot_ly(
+          x = rnorm( 1000 ), y = rnorm( 1000 ),
+          mode = 'markers' )
+        p
+        
+        t<-plot_ly(type='scattergeo', lon=c(42, 39), lat=c(12,22), text=c('Lbr'), mode='markers')
+        t
+        
+        plot_geo()
+        
+        t1 <- load("gpw4_lbr_spdf.RData")
+        
+    ###Plan 3: 3D plots of 2000, 2005, 2010, and 2015 data. Compare, then find an area that experienced growth then zoom in and replot the same years
+    country <- readOGR(dsn="shapefiles", layer="liberia_revised", stringsAsFactors=FALSE, verbose=FALSE)
+    counties <- readOGR(dsn="shapefiles", layer="counties", stringsAsFactors=FALSE, verbose=FALSE)
+    
+    country <- spTransform(country, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    counties <- spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    
+    gpw42000<-raster("gpw-v4-population-count_2000.tif")
+    gpw42005<-raster("gpw-v4-population-count_2005.tif")
+    gpw42010<-raster("gpw-v4-population-count_2010.tif")
+    gpw42015<-raster("gpw-v4-population-count_2015.tif")
+    piplup <- seq(0.01, 100, by = 5)
+    
+  #Cropping/Masking 2000-2015
+    gpw42000 <-crop(gpw42000,extent(country))
+    gpw42000<-mask(gpw42000,country)
+    
+    gpw42005 <-crop(gpw42005,extent(country))
+    gpw42005<-mask(gpw42005,country)
+    
+    gpw42010 <-crop(gpw42010,extent(country))
+    gpw42010<-mask(gpw42010,country)
+    
+    gpw42015 <-crop(gpw42010,extent(country))
+    gpw42015 <-mask(gpw42010,country)
+    
+    #Tip: Ploting all of these at once overlays them on top of each other a bit from the original plot: Don't do that
+    m2000D<- plot3D(gpw42000, at = piplup, adjust=T, col=terrain.colors(20))
+    m2005D<- plot3D(gpw42005, at = piplup, adjust=T, col=terrain.colors(20))
+    m2010D<- plot3D(gpw42010, at = piplup, adjust=T, col=terrain.colors(20))
+    m2015D<- plot3D(gpw42015, at = piplup, adjust=T, col=terrain.colors(20)) 
+    
+    #Plan 3a Plot a small section
+    gpw2000c <- crop(gpw42000, extent(-9.9, -9.3, 6.5, 7.4))
+    gpw2005c <- crop(gpw42005, extent(-9.9, -9.3, 6.5, 7.4))
+    gpw2010c <- crop(gpw42010, extent(-9.9, -9.3, 6.5, 7.4))
+    gpw2015c <- crop(gpw42015, extent(-9.9, -9.3, 6.5, 7.4))
     
     
-    pikachu <- seq(0.01, 1000, by = 5)
+    #Just showing the three 2000,2005,2010 plots there is a slight increase in elevation as the years
+    #go up. Also note the color change in the plateau gets a stratified appearence as time goes on
+    plot3D(gpw2000c, at=dr, col=terrain.colors)
+    plot3D(gpw2005c, col=terrain.colors)
+    plot3D(gpw2010c, col=terrain.colors)
+    plot3D(gpw2015c, col=terrain.colors)
+    dr <- seq(1,100, by =1 )
+    #Plant 3b plot where is a river based on lat long coordinates and observe 3D map
+    gpw2000river <- crop(gpw42000, extent(-10, -9.8, 7, 8))
+    plot3D(gpw2000river, col=terrain.colors(20))
+    
+    #Coordinated above shoudl show that individuals are not living on the intersection
+    #of St. Paul River on the border of Gbarpolu and Bong, over the 3D map serves to show
+    #no change in population based on the natural barrier. Thus, 3Dplot mapping may not be
+    #suitible to tell where people may not live due to not account for geographic barriers
+    
+    circ <- drawPoly(sp=T, col='red', lwd = 2)
+    
+    m2010D<- plot3D(gpw42010, at = piplup, adjust=T, col=terrain.colors(20))
     
     
-    gpw4test3 <- crop(gpw4, extent (-9,-6.5,6,8))
-    plot3D(gpw4test3, useLegend = T, at = pikachu, col = terrain.colors(20))
+    x <- c(-11,-11,-10,-10)
+    y <- c(5,6,6,5)
+    z <- C(10,10,10,10)
+    m2010E <- plot3D(gpw42010, at = piplup, adjust=T, col=terrain.colors(20)) + layer(polygon3d(x, y, z, col = 'red'))
+    polygon3d(x, y, z=rep(120, 4), col = 'blue')
+    polygon3d(x, y, z=rep(140, 4), col = 'black')
     
-    gpw4test4 <- crop(gpw4, extent (-9,-8.9,6,6.5))
-    plot3D(gpw4test4, useLegend = T, at = pikachu, col = terrain.colors(20))
+    
+    
+####Extracting GPW4 Data GGPLOT2 - Chris####
+    gpw4test<-raster("gpw-v4-population-count_2010.tif")
+    # plot1<-gplot(gpw4test)+geom_tile(aes(fill = value))
+    # plot1
+    
+    country <- readOGR(dsn="shapefiles", layer="liberia_revised", stringsAsFactors=FALSE, verbose=FALSE)
+    counties <- readOGR(dsn="shapefiles", layer="counties", stringsAsFactors=FALSE, verbose=FALSE)
+    
+    proj4string(country)
+    proj4string(counties)
+    
+    country <- spTransform(country, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    counties <- spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    
+    country_f <- fortify(country)
+    counties_f <- fortify(counties, region = "CCNAME")
+    
+    extent(country)
+    gpw4_lbr<-crop(gpw4,extent(country))
+    gpw4_lbr<-mask(gpw4_lbr,country)
+    
+    # x<-rasterToPolygons(gpw4_lbr) 
+    # system.time(y<-fortify(x)) Takes forever (900 seconds)
+    save(y,file = "gpw4_lbr_spdf.RData")
+    load("gpw4_lbr_spdf.RData")
+    data<-x@data
+    data[,2]<-row.names(data)
+    colnames(data)<-c("pop","id")
+    z<-left_join(y,data,by="id")
+    ggplot()+geom_map(data=country_f,map = country_f,aes(x=long,y=lat,map_id=id))+geom_map(data=z,map=z,aes(x=long,y=lat,map_id=id,fill=pop))
+    
+    gpw4_lbr
+    
+    
+    ###PLOT###
+    plot2<-gplot(gpw4_lbr)+
+      geom_tile(aes(fill = log(value)))+
+      scale_fill_gradientn(colours = c("grey100","coral","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
+      theme(text = element_text(color = "white"),
+            rect = element_rect(fill = "grey35", color = "grey35"),
+            plot.background = element_rect(fill = "grey35", color = "grey35"),
+            panel.background = element_rect(fill = "grey35", color = "grey35"),
+            plot.title = element_text(),
+            panel.grid = element_blank(),
+            panel.border = element_blank(),
+            axis.text = element_blank(),
+            axis.title = element_blank(),
+            axis.ticks = element_blank(),
+            legend.position = c(.1,.2))+
+      ggtitle("Plot (gpw4)")
+    plot2
+    colors()
+    
+    map1<-ggplot()+
+      geom_map(data=lbr_1_f_gpw4,map=lbr_1_f_gpw4,aes(x=long,y=lat,map_id=id,fill=log(pop)))+
+      scale_fill_gradientn(colours = c("grey100","red2"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")+
+      geom_map(data=lbr_1_f_gpw4,map=lbr_1_f_gpw4,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+      theme(text = element_text(color = "white"),
+            rect = element_rect(fill = "grey35", color = "grey35"),
+            plot.background = element_rect(fill = "grey35", color = "grey35"),
+            panel.background = element_rect(fill = "grey35", color = "grey35"),
+            plot.title = element_text(),
+            panel.grid = element_blank(),
+            panel.border = element_blank(),
+            axis.text = element_blank(),
+            axis.title = element_blank(),
+            axis.ticks = element_blank(),
+            legend.position = c(.1,.2))+
+      ggtitle("County Pop. (gpw4)")
+    map1
+    
+    
+    
+####
+####GPW4 MAPS OVERTIME 2000, 2005, 2010, 2015####
+    ###READING SHAPEFILES###
+    lbr_0<-readOGR(dsn="shapefiles", layer="liberia_revised",stringsAsFactors=FALSE, verbose=FALSE)
+    lbr_1<-readOGR(dsn = "shapefiles",layer="counties",stringsAsFactors = FALSE,verbose=FALSE)
+    lbr_2<-readOGR(dsn="shapefiles",layer="districts", stringsAsFactors = FALSE,verbose = FALSE)
+    lbr_3<-readOGR(dsn="shapefiles",layer="clans", stringsAsFactors = FALSE,verbose = FALSE)
+    
+    proj4string(lbr_0)
+    proj4string(lbr_1)
+    proj4string(lbr_2)
+    proj4string(lbr_3)
+    
+    lbr_0<-spTransform(lbr_0, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    lbr_1<-spTransform(lbr_1, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    lbr_2<-spTransform(lbr_2, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    lbr_3<-spTransform(lbr_3, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    
+    ###READING GPW AND CROP### #-11.55, -7.3, 4.2, 8.6 ## 
+    gpw42000 <- raster("gpw-v4-population-count_2000.tif")
+    gpw42000c<- crop(gpw42000, extent(-11.55, -7.3, 4.2, 8.6))
+    
+    gpw42005 <- raster("gpw-v4-population-count_2005.tif")
+    gpw42005c<- crop(gpw42005, extent(-11.55, -7.3, 4.2, 8.6))
+    
+    gpw42010<-raster("gpw-v4-population-count_2010.tif")
+    gpw42010c<- crop(gpw42010, extent(-11.55, -7.3, 4.2, 8.6)) 
+    
+    gpw42015 <- raster("gpw-v4-population-count_2015.tif")
+    gpw42015c <- crop(gpw42015, extent(-11.55, -7.3, 4.2, 8.6))
+    
+   
+    ###PLOTS###
+    piplup <- seq(.01, 100, by = 5)
+    gpw42000m <- levelplot(gpw42000c, at=piplup, col.regions=terrain.colors(20), main = "Lbr 2000 Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_0, col = "black"))
+
+    gpw42005m <- levelplot(gpw42005c, at = piplup, col.regions=terrain.colors(20), main = "Lbr 2005 Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_0, col = "black"))
+    
+    gpw42010m <- levelplot(gpw42010c, at = piplup, col.regions=terrain.colors(20), main = "Lbr 2010 Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_0, col = "black"))
+    
+    gpw42015m <- levelplot(gpw42015c, at = piplup, col.regions=terrain.colors(20), main = "Lbr 2015 Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_0, col = "black"))
+    
+
+    comparison<-arrangeGrob(gpw42000m,gpw42005m,gpw42010m,gpw42015m,nrow=2,ncol=2)
+    ggsave("lbr_com_2000_thr_2015.png",comparison,width = 28, height = 26, dpi = 150)
+    
+####IGNORE Varience Between Populations in LBR####
+    ###READING SHP###
+    gpw4_lbr<-raster("gpw-v4-population-count_2010.tif")
+    gpw42010<-raster("gpw-v4-population-count_2010.tif")
+    gpw42005<-raster("gpw-v4-population-count_2005.tif")
+    gpw42000<-raster("gpw-v4-population-count_2000.tif")
+    gpw42015<-raster("gpw-v4-population-count_2015.tif")
+    
+    country <- readOGR(dsn="shapefiles", layer="liberia_revised", stringsAsFactors=FALSE, verbose=FALSE)
+    counties <- readOGR(dsn="shapefiles", layer="counties", stringsAsFactors=FALSE, verbose=FALSE)
+    
+    proj4string(country)
+    proj4string(counties)
+    
+    country <- spTransform(country, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    counties <- spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+    
+    country_f <- fortify(country)
+    counties_f <- fortify(counties, region = "CCNAME")
+    
+    
+    ###TEST###
+    r1 <- (gpw42015-gpw42000)
+    r1m <- levelplot(gpw4test, at=piplup, col.regions=terrain.colors(20), main = "Lbr County Lvl Scale 0.01-100 breaks of 5") + layer(sp.polygons(lbr_0, col = "black"))
+    
+    
+    
+    
+    extent(country)
+    gpw4_lbr<-crop(gpw4,extent(country))
+    gpw4_lbr<-mask(gpw4_lbr,country)
+    
+    gpw42005c <- crop(gpw42005, extent(country))
+    gpw42005c <- mask(gpw42005, country)
+    
+    ###2010-2005###
+    x<-rasterToPolygons(gpw4_lbr) 
+    # system.time(y<-fortify(x)) #Takes forever (900 seconds)
+    #save(y,file = "gpw42010_lbr_spdf.RData")
+    load("gpw42010_lbr_spdf.RData")
+    data<-x@data
+    data[,2]<-row.names(data)
+    colnames(data)<-c("pop","id")
+    z10<-left_join(y,data,by="id")
+    
+    ###2005###
+    # gpw42005_r <- rasterToPolygons(gpw42005c)
+    # system.time(gpw42005_f <- fortify(gpw42005_r))
+    # save(gpw42005_f, file = "gpw42005_f.RData")
+    load("gpw42005_f.RData")
+    data2005<-gpw42005_r@data
+    data2005[,2]<-row.names(data2005)
+    colnames(data2005)<-c("pop","id")
+    # z<-left_join(gpw42005_f,data2005,by="id")
+    
+    ###Testing###
+    subdata1 <- merge(x = z10, y = data2005, by = "id", all = T)
+    subdata2 <- merge(z, data2005)
+    
+    ###2005-2010###
+    subdata1$C <- ((subdata1$pop.x - subdata1$pop.y)/(subdata1$pop.y))
+   
+    z10$pop <- subdata1$C
+    
+    lbr_grth_05_10<-ggplot()+
+      geom_map(data=z10,map=z10,aes(x=long,y=lat,map_id=id,fill=pop))+
+      scale_fill_gradientn(colours = c("grey100","red2","blue"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")
+      geom_map(data=z10,map=z10,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+      theme(text = element_text(color = "white"),
+            rect = element_rect(fill = "grey35", color = "grey35"),
+            plot.background = element_rect(fill = "grey35", color = "grey35"),
+            panel.background = element_rect(fill = "grey35", color = "grey35"),
+            plot.title = element_text(),
+            panel.grid = element_blank(),
+            panel.border = element_blank(),
+            axis.text = element_blank(),
+            axis.title = element_blank(),
+            axis.ticks = element_blank(),
+            legend.position = c(.1,.2))+
+      ggtitle("Liberia Growth Rate 2005 to 2010")
+      lbr_grth_05_10
+      
+    ###2000 to 2005###
+      extent(country)
+      gpw4_lbr2000<-crop(gpw42000,extent(country))
+      gpw4_lbr2000<-mask(gpw4_lbr2000,country)
+      
+      x2000<-rasterToPolygons(gpw4_lbr2000) 
+      # system.time(y2000<-fortify(x2000)) #Takes forever (900 seconds)
+      # save(y2000,file = "gpw42000_lbr_spdf.RData")
+      load("gpw42000_lbr_spdf.RData")
+      data2000<-x2000@data
+      data2000[,2]<-row.names(data)
+      colnames(data2000)<-c("pop","id")
+      z2000<-left_join(y2000,data2000,by="id")
+      
+      #data=2005
+      
+      z1<-left_join(data,data2000,by="id")
+      
+      ###
+      z1$C <- ((z1$pop.x - z1$pop.y)/(z1$pop.y))
+      z00_05 <- left_join(y2000,z1, by="id")
+      
+      
+      
+      lbr_grth_00_05<-ggplot()+
+        geom_map(data=z00_05,map=z00_05,aes(x=long,y=lat,map_id=id,fill=C))+
+        scale_fill_gradientn(colours = c("grey100","red2","blue"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")
+        geom_map(data=z00_05,map=z00_05,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+        theme(text = element_text(color = "white"),
+              rect = element_rect(fill = "grey35", color = "grey35"),
+              plot.background = element_rect(fill = "grey35", color = "grey35"),
+              panel.background = element_rect(fill = "grey35", color = "grey35"),
+              plot.title = element_text("2000-2005"),
+              panel.grid = element_blank(),
+              panel.border = element_blank(),
+              axis.text = element_blank(),
+              axis.title = element_blank(),
+              axis.ticks = element_blank(),
+              legend.position = c(.1,.2))+
+        ggtitle("Liberia Growth Rate 2000 to 2005")
+      lbr_grth_00_05
+    
+    ###2000 to 2010
+      #2010
+      load("gpw42010_lbr_spdf.RData")
+      data<-x@data
+      data[,2]<-row.names(data)
+      colnames(data)<-c("pop","id")
+      z10<-left_join(y,data,by="id")
+      
+      z_00_10 <- left_join(z10, data2000, by="id") 
+      
+      z_00_10$C <- ((z_00_10$pop.x - z_00_10$pop.y)/(z_00_10$pop.y))
+      z00_10 <- left_join(y2000,z1, by="id")
+      
+      lbr_grth_00_10<-ggplot()+
+        geom_map(data=z00_10,map=z00_10,aes(x=long,y=lat,map_id=id,fill=C))+
+        scale_fill_gradientn(colours = c("grey100","red2","blue"),guide=guide_colourbar(title=NULL),space="Lab",na.value = "grey60")
+      geom_map(data=z00_10,map=z00_10,aes(x=long,y=lat,map_id=id),color="grey45",alpha=0,size=.1)+
+        theme(text = element_text(color = "white"),
+              rect = element_rect(fill = "grey35", color = "grey35"),
+              plot.background = element_rect(fill = "grey35", color = "grey35"),
+              panel.background = element_rect(fill = "grey35", color = "grey35"),
+              plot.title = element_text("2000-2005"),
+              panel.grid = element_blank(),
+              panel.border = element_blank(),
+              axis.text = element_blank(),
+              axis.title = element_blank(),
+              axis.ticks = element_blank(),
+              legend.position = c(.1,.2))+
+        ggtitle("Liberia Growth Rate 2000 to 2005")
+      lbr_grth_00_10
+      
+    ###2000 to 2015
+      #2015
+      x2015<-rasterToPolygons(gpw42015) 
+      # system.time(y2000<-fortify(x2000)) #Takes forever (900 seconds)
+      # save(y2000,file = "gpw42000_lbr_spdf.RData")
+      load("gpw42015_lbr_spdf.RData")
+      data2015<-x2015@data
+      data2015[,2]<-row.names(data)
+      colnames(data2015)<-c("pop","id")
+      z2015<-left_join(y2015,data2015,by="id")
+      
+      #data=2005
+      
+      z00_15<-left_join(z2015,data2000,by="id")
+      
+      ###
+      z00_15$C <- ((z1$pop.x - z1$pop.y)/(z1$pop.y))
+      z00_15 <- left_join(y2000,z1, by="id")
+      
+      
+      
+      
+      
+#####MAPS 06/07/17####
+      country <- readOGR(dsn="shapefiles", layer="liberia_revised", stringsAsFactors=FALSE, verbose=FALSE)
+      counties <- readOGR(dsn="shapefiles", layer="counties", stringsAsFactors=FALSE, verbose=FALSE)
+      
+      country <- spTransform(country, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+      counties <- spTransform(counties, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+      
+      gpw42000<-raster("gpw-v4-population-count_2000.tif")
+      gpw42005<-raster("gpw-v4-population-count_2005.tif")
+      gpw42010<-raster("gpw-v4-population-count_2010.tif")
+      gpw42015<-raster("gpw-v4-population-count_2015.tif")
+      piplup <- seq(1, 250, by = 1)
+      
+      blueblue<-colorRampPalette(brewer.pal(9,"Blues"))(250)
+      gpw42010<- crop(gpw42010, extent(-10, -9, 7, 8))
+      m2010 <- levelplot(gpw42010,at=piplup, main = "2010", col.regions=blueblue) + layer(sp.polygons(lbr_1, col = "black"))
+      m2010
+      
+      
     
