@@ -82,13 +82,13 @@ bbs[i,2:5] <- attr(u, "bb")}
 ### 116. Gbono Paye Liberia
 ### 120. Beo-Yoolar Liberia
 
-  cities$X1 <- citytitle$x
-  cities$X2 <- citytitle$y
-  cities$X3 <- attr(u, "bb")
+  # cities$X1 <- citytitle$x
+  # cities$X2 <- citytitle$y
+  # cities$X3 <- attr(u, "bb")
 
-p <- get_googlemap("Kronoken City Liberia", maptype = "roadmap")
+p <- get_googlemap("Kronoken City Liberia", maptype = "roadmap"))
 bbr <- attr(p, "bb")
-bbr
+
 #cities <- data.frame(matrix(nrow = 973, ncol = 6))
 
 clat <- (bbs$ll.lat + bbs$ur.lat)/2
@@ -105,3 +105,41 @@ save(world, file = "world_city_data.RData")
 liberiaCities <- read.csv("liberia_city_names.csv")
 comNames <- merge(liberiaCities, lib_citpops, by.x = "AccentCity", by.y = "Town.Village")
     
+for (i in 59:nrow(bbs25)) {
+u <- get_googlemap(dQuote(bbs25[i,]$City), maptype = "roadmap", source = c("google", "osm", "stamen"))
+bbs25[i,2:5] <- attr(u, "bb")
+bbs25[i, 6] <- ((bbs25[i,]$ur.lat - bbs25[i,]$ll.lat)/2) + bbs25[i,]$ll.lat
+bbs25[i, 7] <- ((bbs25[i,]$ur.lon - bbs25[i,]$ll.lon)/2) + bbs25[i,]$ll.lon
+}
+LibCities2500 <- merge(poprank2500, bbs25, by.x = "citytitle", by.y = "City")
+View(LibCities2500)
+colnames(LibCities2500)[1:4] <- c("City 'Liberia'", "Rank", "Population", "City")
+LibCities2500 <- LibCities2500[order(LibCities2500$Rank),]
+LibCities2500 <- LibCities2500[order(LibCities2500$Population),]
+LibCities2500 <- LibCities2500[order(LibCities2500$Population, decreasing = TRUE),]
+LibCities2500[10, 9] <- "6.4233333"
+LibCities2500[10, 10] <- "-10.7838889"
+LibCities2500[10, 9] <- "4.588590"
+LibCities2500[10, 10] <- "-7.672413"
+LibCities2500[7, 9] <- "6.4233333"
+LibCities2500[7, 10] <- "-10.7838889"
+LibCities2500[16, 9] <- "7.1094444"
+LibCities2500[19, 10] <- "-8.8405556"
+LibCities2500[16, 9] <- "7.1094444"
+LibCities2500[16, 10] <- "-8.8405556"
+LibCities2500[16, 9] <- "6.274929"
+LibCities2500[16, 10] <- "-10.347261"
+LibCities2500[19, 10] <- "-8.708892"
+LibCities2500[17, 9] <- "7.1094444"
+LibCities2500[17, 10] <- "-8.8405556"
+LibCities2500[48, 9] <- "7.8727778"
+LibCities2500[48, 10] <- "-9.4838889"
+LibCities2500[51, 9] <- "6.3166667"
+LibCities2500[51, 10] <- "-9.75"
+LibCities2500[58, 9] <- "7.6088889"
+LibCities2500[58, 10] <- "-8.6225"
+LibCities2500[60, 9] <- "7.1608333"
+LibCities2500[60, 10] <- "-10.9175"
+
+save(df, file = "~/Desktop/AidData/Lib_Repo/LibCities2500.RData")
+
