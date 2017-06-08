@@ -18,6 +18,7 @@ setwd("~/GitHub/Liberia")
 # install.packages("scales",dependencies = T)
 # install.packages("rgl",dependencies = T)
 # install.packages("plot3Drgl",dependencies = T)
+install.packages("akima")
 
 library(rgdal)
 library(dplyr)
@@ -36,6 +37,7 @@ library(mapdata)
 library(rgl)
 library(scales)
 library(plot3Drgl)
+library(akima)
 
 ##
 
@@ -69,7 +71,7 @@ gpw4_2005<-crop(gpw4_2005,extent(country))
 
 gpw4_2010<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2010.tif")
 gpw4_2010<-crop(gpw4_2010,extent(country))
-#gpw4_2010<-mask(gpw4_2010,country)
+gpw4_2010<-mask(gpw4_2010,country)
 
 gpw4_2015<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2015.tif")
 gpw4_2015<-crop(gpw4_2015,extent(country))
@@ -851,6 +853,7 @@ data_final[,10]<-1:nrow(data_final)
 colnames(data_final)[10]<-"id"
 
 save(data_final,file = "lbr_data_final.RData")
+load("lbr_data_final.RData")
 
 ## Get city points ##
 city_points<-read.csv("liberia_city_names.csv")
@@ -873,6 +876,38 @@ gplot(gpw4_2000)+geom_map(data=country_f,map=country_f,aes(x=long,y=lat,map_id=i
 gplot(growth_00_05)+geom_map(data=country_f,map=country_f,aes(x=long,y=lat,map_id=id))+geom_tile(aes(fill = value))+geom_point(data=city_points2,aes(x=Longitude,y=Latitude),cex=.01)
 
 
+#### PLOT IN 3D ####
+
+## TEST ##
+r <- raster(ncol=10, nrow=10)
+values(r) <- sample(0:255, ncell(r), replace=TRUE)
+ctab <- sample(rainbow(256))
+colortable(r) <- blueblue
+plot(r)
+head(colortable(r)) 
+plot3D(r,useLegend = TRUE)
+
+#####
+
+
+ramp <- colorRamp(c("red", "white"))
+rgb<-rgb( ramp(seq(0, 1, length = 255)), max = 255)
+
+blueblue<-colorRampPalette(brewer.pal(9,"Blues"))(256)
+col<-rgb(blueblue,maxColorValue = 255)
+plot3d(x=data_final$long,y=data_final$lat,z=data_final$pop2010,type = "s",col = blueblue)
+colortable(gpw4_2010)<-blueblue
+plot3D(gpw4_2010,at = seq(1,256,by=1),col=blueblue)
+plot3D(gpw4_2010,useLegend = TRUE)
+summary(plot1)
+head(plot1)
+class(plot1)
+
+surf3D(x=data_final$long,y=data_final$lat,z=data_final$pop2010,colvar=z, col = blueblue)
+example(surf3D)
+surf3D(gpw4_2010)
+persp(interp(x=data_final$long,y=data_final$lat,z=data_final$pop2010),col = "red")#,col=blueblue)
+plot1
 
 
 #### LBR Overlay SHP on LEVEL.PLOT ####
@@ -1086,7 +1121,7 @@ gpw42010<-raster("gpw-v4-population-count_2010.tif")
 gpw42015<-raster("gpw-v4-population-count_2015.tif")
 piplup <- seq(1, 250, by = 1)
 
-blueblue<-colorRampPalette(brewer.pal(9,"Blues"))(250)
+blueblue<-colorRampPalette(brewer.pal(9,"Blues"))(256)
 gpw42010<- crop(gpw42010, extent(-10, -9, 7, 8))
 m2010 <- levelplot(gpw42010,at=piplup, main = "2010", col.regions=blueblue) + layer(sp.polygons(lbr_1, col = "black"))
 m2010
