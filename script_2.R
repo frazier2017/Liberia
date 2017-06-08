@@ -1,3 +1,4 @@
+#Set the rectangle box to be within only one color blob 
 rm(list=ls())
 setwd("~/GitHub/Liberia")
 
@@ -845,12 +846,14 @@ load("comNames.RData")
 
 
 ## Test Plots ##
+#TESTING PLOTS FOR PPP#
 
 win<-as(country,"owin")
 ppp<-ppp(data_final$long,data_final$lat,marks=data_final$pop2010,window=win)
+
 ppp2<-as.ppp(data_final,W=win)
 plot.ppp(ppp,cols=ppp$marks)
-plot(density(ppp,1))
+plot(density(ppp,10000))
 
 
 
@@ -879,10 +882,14 @@ m2005 <- levelplot(gpw42005,at=piplup, main = "2005", col.regions=terrain.colors
 
 
 gpw42010<- crop(gpw42010, extent(-11.55, -7.3, 4.2, 8.6))
-m2010 <- levelplot(gpw42010,at=piplup, main = "2010", col.regions=terrain.colors(25)) + layer(sp.polygons(lbr_1, col = "black"))
+m2010 <- levelplot(gpw42010,at=piplup, main = "2010", col.regions=blueblue) + layer(sp.polygons(country, col = "black"))
+m2010
 
-
+chris1 <- persp(gpw42010)
+chrisistrying <- arrangeGrob(chris1, m2010)
+ggsave("tst1.png", chrisistrying, width = 20, height = 18, dpi = 150)
 gpw42015<- crop(gpw42015, extent(-11.55, -7.3, 4.2, 8.6))
+
 m2015 <- levelplot(gpw42015,at=piplup, main = "2015", col.regions=terrain.colors(25)) + layer(sp.polygons(lbr_1, col = "black"))
 
 yrcom00_15_.01_to_100_by_5 <- arrangeGrob(m2000,m2005,m2010,m2015,nrow=2,ncol=2)
@@ -979,10 +986,13 @@ ggsave("lbr_com_shp_clan.png",comparison,width = 22, height = 20, dpi = 150)
 ## Plot3D in rgl package with RasterVis and Raster ##
 gpw4test1 <- crop(gpw4, extent(-11.55, -7.3, 4.2, 8.6)) #xmin, xmax, ymin, ymax 
 gpw4test1 <- crop(gpw4, extent(country)) #xmin, xmax, ymin, ymax
+# gpw4test1 <-mask(gpw4, country)
 gpw4test2 <- crop(gpw4, extent (-11.55, -7.3, 4.2, 8.6))
 
-plot3D(gpw4test2, useLegend = T, at = piplup, col = terrain.colors(20))
 
+entei <- seq(1,3000, by = 1)
+
+plot3D(gpw4test2, useLegend = T, at = piplup,col = blueblue)
 
 pikachu <- seq(0.01, 1000, by = 5)
 
@@ -1062,7 +1072,7 @@ polygon3d(x, y, z=rep(140, 4), col = 'black')
 ##
 
 
-#### MAPS 06/07/17 ####
+#### MAPS 06/07/17 and on####
 country <- readOGR(dsn="shapefiles", layer="liberia_revised", stringsAsFactors=FALSE, verbose=FALSE)
 counties <- readOGR(dsn="shapefiles", layer="counties", stringsAsFactors=FALSE, verbose=FALSE)
 
@@ -1073,25 +1083,25 @@ gpw42000<-raster("gpw-v4-population-count_2000.tif")
 gpw42005<-raster("gpw-v4-population-count_2005.tif")
 gpw42010<-raster("gpw-v4-population-count_2010.tif")
 gpw42015<-raster("gpw-v4-population-count_2015.tif")
-piplup <- seq(1, 250, by = 1)
 
+piplup <- seq(1, 250, by = 1)
 blueblue<-colorRampPalette(brewer.pal(9,"Blues"))(250)
 gpw42010<- crop(gpw42010, extent(-10, -9, 7, 8))
 m2010 <- levelplot(gpw42010,at=piplup, main = "2010", col.regions=blueblue) + layer(sp.polygons(counties, col = "black")) 
 m2010
 ##
 
-###Makes a Triangle on the Map with the layer function for polys, values can be extracted, but need to attribute them to some data
+###Makes a Triangle on the Map with the layer function for polys, values can be extracted, but need to attribute them to some data###
   cds1 <- rbind(c(-9.6,7.2), c(-9.4,7.2), c(-9.3, 7.2), c(-9.5,7.1), c(-9.6,7.2))
   
   cds2 <- rbind(c(-9.6,7.2), c(-9.4,7.2), c(-9.3, 7.2), c(-9.5,7.1), c(-9.6,7.2))
   
   polys <- SpatialPolygonsDataFrame(SpatialPolygons(list(Polygons(list(Polygon(cds1)), 1), 
                                                          Polygons(list(Polygon(cds2)), 2))),data.frame(ID=c(1,2)))
-  #Combines the polygon with the raster layer to gain the data 
-  ( v <- extract(gpw42010, polys) )
+  #Combines the polygon with the raster layer to gain the data# 
+  ( v <- extract(gpw42010, polys, cellnumbers=T, weights=T) )
   
-  #Method: Add NA to absent class values if they exist (not used for this data set)
+  #Method: Add NA to absent class values if they exist (not used for this data set)#
   v.counts <- lapply(v,table)
   (v.pct <- lapply(v.counts, FUN=function(x){ x / sum(x) } ) )
   class.df <- as.data.frame(t(sapply(v.pct,'[',1:length(unique(gpw42010)))))  
@@ -1100,9 +1110,43 @@ m2010
   polys@data <- data.frame(polys@data, class.df)
   head(polys@data)
   
-  #After Extract use this function to determine the number of pixels 
+  #After Extract use this function to determine the number of pixels# 
   lengths(v)
-  
-  #Map
+  #Sum the values within the polygon
+  sum(v[[1]])
+  #Test
+  id.cell <- extract(gpw42010, polys, cellnumbers=T)[1]
+  rowColFromCell(gpw42010, id.cell)
+  #Map#
   mpoly2010 <- levelplot(gpw42010,at=piplup, main = "2010", col.regions=blueblue) + layer(sp.polygons(counties, col = "black")) + layer(sp.polygons(polys, col = "black"))
   mpoly2010
+
+###Making a Rectangle 
+  cds1 <- rbind(c(-9.6,7.2), c(-9.3,7.2), c(-9.3,7.1), c(-9.6,7.1), c(-9.6, 7.2))
+  cds2 <- rbind(c(-9.6,7.2), c(-9.3,7.2), c(-9.3,7.1), c(-9.6,7.1), c(-9.6, 7.2))
+  
+  polys <- SpatialPolygonsDataFrame(SpatialPolygons(list(Polygons(list(Polygon(cds1)), 1), 
+                                                         Polygons(list(Polygon(cds2)), 2))),data.frame(ID=c(1,2)))
+  #Combines the polygon with the raster layer to gain the data# 
+  ( v <- extract(gpw42010, polys) )
+ 
+  lengths(v)
+  sum(v[[1]])
+  m2poly2010 <- levelplot(gpw42010,at=piplup, main = "2010", col.regions=blueblue) + layer(sp.polygons(counties, col = "black")) + layer(sp.polygons(polys, col = "black"))
+  m2poly2010
+
+  ###Attempting to put city points down
+      lbr_cty <- read.csv("LibCities2500.csv")
+      gpw42010<-raster("gpw-v4-population-count_2010.tif")
+      
+      subcity <- subset(lbr_cty, select=c("Lat","Long"))
+      
+      p2 <- spplot(subcity, pch=20) 
+      
+      
+      gpw42010<- crop(gpw42010, extent(-11.55, -7.3, 4.2, 8.6))
+      m2010 <- levelplot(gpw42010,at=piplup, main = "2010", col.regions=blueblue) + layer(sp.polygons(cnty, col = "black")) + layer(sp.polygons(subcity, col=))
+      m2010
+      
+      persp(gpw42010, col = blueblue)
+      
