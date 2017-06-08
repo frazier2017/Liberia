@@ -1,9 +1,23 @@
 rm(list=ls())
 setwd("~/GitHub/Liberia")
 
-#install.packages("mapdata")
-#install.packages("rgl",dependencies = T)
-#install.packages("XQuartz")
+# install.packages("mapdata",dependencies = T)
+# install.packages("rgdal",dependencies = T)
+# install.packages("dplyr",dependencies = T)
+# install.packages("rgeos",dependencies = T)
+# install.packages("ggmap",dependencies = T)
+# yinstall.packages("raster",dependencies = T)
+# install.packages("spatstat",dependencies = T)
+# install.packages("maptools",dependencies = T)
+# install.packages("sp",dependencies = T)
+# install.packages("foreign",dependencies = T)
+# install.packages("knitr",dependencies = T)
+# install.packages("gridExtra",dependencies = T)
+# install.packages("rasterVis",dependencies = T)
+# install.packages("colorspace",dependencies = T)
+# install.packages("scales",dependencies = T)
+# install.packages("rgl",dependencies = T)
+# install.packages("plot3Drgl",dependencies = T)
 
 library(rgdal)
 library(dplyr)
@@ -22,7 +36,6 @@ library(mapdata)
 library(rgl)
 library(scales)
 library(plot3Drgl)
-library(plotly)
 
 ##
 
@@ -836,6 +849,8 @@ data_final<-merge(data_final,data6,by=c("long","lat"))
 data_final<-merge(data_final,data7,by=c("long","lat"))
 data_final[,10]<-1:nrow(data_final)
 colnames(data_final)[10]<-"id"
+
+save(data_final,file = "lbr_data_final.RData")
 
 ## Get city points ##
 city_points<-read.csv("liberia_city_names.csv")
