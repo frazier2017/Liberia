@@ -6,7 +6,7 @@ setwd("~/GitHub/Liberia")
 # install.packages("dplyr",dependencies = T)
 # install.packages("rgeos",dependencies = T)
 # install.packages("ggmap",dependencies = T)
-# yinstall.packages("raster",dependencies = T)
+# install.packages("raster",dependencies = T)
 # install.packages("spatstat",dependencies = T)
 # install.packages("maptools",dependencies = T)
 # install.packages("sp",dependencies = T)
@@ -18,7 +18,7 @@ setwd("~/GitHub/Liberia")
 # install.packages("scales",dependencies = T)
 # install.packages("rgl",dependencies = T)
 # install.packages("plot3Drgl",dependencies = T)
-install.packages("akima")
+# install.packages("akima")
 
 library(rgdal)
 library(dplyr)
@@ -43,6 +43,7 @@ library(akima)
 
 #### DATA ####
 
+
 ## Import Shapefiles ##
 country<-readOGR(dsn="shapefiles", layer="liberia_revised",stringsAsFactors=FALSE, verbose=FALSE)
 cnty<-readOGR(dsn = "shapefiles",layer="counties",stringsAsFactors = FALSE,verbose=FALSE)
@@ -54,20 +55,22 @@ cnty<-spTransform(cnty, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +t
 dist<-spTransform(dist, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 clan<-spTransform(clan, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
 
+
 ### Fortify shapefiles ###
 country_f<-fortify(country)
 cnty_f<-fortify(cnty)
 dist_f<-fortify(dist)
 clan_f<-fortify(clan)
 
+
 ## Import GPW4 data ##
 gpw4_2000<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2000.tif")
 gpw4_2000<-crop(gpw4_2000,extent(country))
-#gpw4_2000<-mask(gpw4_2000,country)
+gpw4_2000<-mask(gpw4_2000,country)
 
 gpw4_2005<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2005.tif")
 gpw4_2005<-crop(gpw4_2005,extent(country))
-#gpw4_2005<-mask(gpw4_2005,country)
+gpw4_2005<-mask(gpw4_2005,country)
 
 gpw4_2010<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2010.tif")
 gpw4_2010<-crop(gpw4_2010,extent(country))
@@ -75,7 +78,17 @@ gpw4_2010<-mask(gpw4_2010,country)
 
 gpw4_2015<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2015.tif")
 gpw4_2015<-crop(gpw4_2015,extent(country))
-#gpw4_2015<-mask(gpw4_2015,country)
+gpw4_2015<-mask(gpw4_2015,country)
+
+
+## Calculate growth rate ##
+growth_00_05<-overlay(gpw4_2000,gpw4_2005,fun=function(r1,r2){return((r2-r1)/r1)})
+growth_05_10<-overlay(gpw4_2005,gpw4_2010,fun=function(r1,r2){return((r2-r1)/r1)})
+growth_10_15<-overlay(gpw4_2010,gpw4_2015,fun=function(r1,r2){return((r2-r1)/r1)})
+
+
+## Load final data ##
+load("lbr_data_final.RData")
 
 
 ##
@@ -117,6 +130,8 @@ gpw4_2015<-crop(gpw4_2015,extent(country))
   # m<-nrow(clan_labels[which(clan_labels$dist=="Commonwealth"),])
   # remove2<-vector("list",m)
   # clan_labels[which(clan_labels$dist == "Commonwealth"),]$name <- remove2
+  
+
   
   ### MAKE MAPS ###
   map4<-ggplot()+
@@ -809,10 +824,6 @@ dev.off()
 
 #### GPW4 EXTRACTION ####
 
-## Calculate growth rate ##
-growth_00_05<-overlay(gpw4_2000,gpw4_2005,fun=function(r1,r2){return((r2-r1)/r1)})
-growth_05_10<-overlay(gpw4_2005,gpw4_2010,fun=function(r1,r2){return((r2-r1)/r1)})
-growth_10_15<-overlay(gpw4_2010,gpw4_2015,fun=function(r1,r2){return((r2-r1)/r1)})
 
 ## Extract location and values ##
 data<-cbind(xyFromCell(gpw4_2000,1:ncell(gpw4_2000)),getValues(gpw4_2000))
@@ -843,24 +854,25 @@ data7<-cbind(xyFromCell(growth_10_15,1:ncell(growth_10_15)),getValues(growth_10_
 data7<-na.omit(data7)
 colnames(data7)<-c("long","lat","growth15")
 
-data_final<-merge(data,data2,by=c("long","lat"))
-data_final<-merge(data_final,data3,by=c("long","lat"))
-data_final<-merge(data_final,data4,by=c("long","lat"))
-data_final<-merge(data_final,data5,by=c("long","lat"))
-data_final<-merge(data_final,data6,by=c("long","lat"))
-data_final<-merge(data_final,data7,by=c("long","lat"))
-data_final[,10]<-1:nrow(data_final)
-colnames(data_final)[10]<-"id"
+lbr_data_final<-merge(data,data2,by=c("long","lat"))
+lbr_data_final<-merge(lbr_data_final,data3,by=c("long","lat"))
+lbr_data_final<-merge(lbr_data_final,data4,by=c("long","lat"))
+lbr_data_final<-merge(lbr_data_final,data5,by=c("long","lat"))
+lbr_data_final<-merge(lbr_data_final,data6,by=c("long","lat"))
+lbr_data_final<-merge(lbr_data_final,data7,by=c("long","lat"))
+lbr_data_final[,10]<-1:nrow(lbr_data_final)
+colnames(lbr_data_final)[10]<-"id"
 
-save(data_final,file = "lbr_data_final.RData")
+save(lbr_data_final,file = "lbr_data_final.RData")
 load("lbr_data_final.RData")
+
 
 ## Get city points ##
 city_points<-read.csv("liberia_city_names.csv")
 city_points<-distinct(city_points,Latitude,Longitude,.keep_all = T)
 
 load("comNames.RData")
-
+load("LibCities2500.RData")
 
 ## Test Plots ##
 
@@ -1121,8 +1133,8 @@ gpw42010<-raster("gpw-v4-population-count_2010.tif")
 gpw42015<-raster("gpw-v4-population-count_2015.tif")
 piplup <- seq(1, 250, by = 1)
 
-blueblue<-colorRampPalette(brewer.pal(9,"Blues"))(256)
-gpw42010<- crop(gpw42010, extent(-10, -9, 7, 8))
-m2010 <- levelplot(gpw42010,at=piplup, main = "2010", col.regions=blueblue) + layer(sp.polygons(lbr_1, col = "black"))
+blueblue<-colorRampPalette(brewer.pal(9,"Blues"))(250)
+gpw4_2010<- crop(gpw4_2010, extent(-10, -9, 7, 8))
+m2010 <- levelplot(gpw4_2010,at=piplup, main = "2010", col.regions=blueblue) + layer(sp.polygons(cnty, col = "black"))
 m2010
 ##
