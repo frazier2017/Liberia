@@ -72,6 +72,57 @@ growth_10_15<-overlay(gpw4_2010,gpw4_2015,fun=function(r1,r2){return((r2-r1)/r1)
 ## Load final data ##
 load("lbr_data_final.RData")
 
+#### RANDOMLY DISTRIBUTE POINTS ####
+gpw4_2000<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2000.tif")
+gpw4_2000<-crop(gpw4_2000,extent(country))
+gpw4_2000_clan<-extract(gpw4_2000,clan,df=TRUE)
+gpw4_2000_clan<-aggregate(.~ID,gpw4_2000_clan,FUN=sum)
+gpw4_2000_clan$ID<-as.character(seq(0,815))
+clan_f_sum<-clan_f
+clan_f_sum$x<-1
+clan_f_sum<-aggregate(x~id,clan_f_sum,FUN=sum)
+gpw4_2000_clan2<-gpw4_2000_clan
+gpw4_2000_clan2$gpw.v4.population.count_2000<-gpw4_2000_clan2$gpw.v4.population.count_2000/clan_f_sum$x
+clan_df<-left_join(clan_f,gpw4_2000_clan,by=c("id"="ID"))
+clan_df<-left_join(clan_df,gpw4_2000_clan2,by=c("id"="ID"))
+
+list_owin<-list()
+for (id in clan_df$id){
+  sub<-subset(clan_df,clan_df$id==as.character(id))
+  sub2<-sub[,1:2]
+  sub2<-unique(sub2)
+  win<-owin(poly=data.frame(x=rev(sub2$long),y=rev(sub2$lat)))
+  list_owin<-c(list_owin,list(win))
+}
+
+tess2<-tess(tiles=list_owin)
+plot(tess2)
+
+sub<-subset(clan_df,clan_df$id==as.character(0))
+sub2<-sub[,1:2]
+sub2<-unique(sub2)
+win<-owin(poly=data.frame(x=rev(sub2$long),y=rev(sub2$lat)))
+list_owin<-c(list_owin,list(win))
+
+sub<-subset(clan_df,clan_df$id==as.character(1))
+sub2<-sub[,1:2]
+sub2<-unique(sub2)
+win2<-owin(poly=data.frame(x=rev(sub2$long),y=rev(sub2$lat)))
+list_owin<-c(list_owin,list(win2))
+class(list_owin[1])
+
+tess1<-tess(tiles=list_owin)
+plot(tess1)
+
+x<-list(win,win2)
+
+
+list_owin[1]
+
+load("gpw4_lbr_spdf.RData")
+win1<-owin(xrange=c(-9.775000,-9.766667),yrange=c(8.541667,8.550000))
+win1<-runifpoint()
+
 
 #### CHANGE COORDINATES ####
 lbr_data_final_NE<-lbr_data_final
@@ -88,11 +139,13 @@ ppp_test<-rescale.ppp(ppp_test,1000)
 unitname(ppp_test)<-"kilometers"
 plot(ppp_test)
 summary(ppp_test)
-dens<-density(ppp_test,10)
+dens<-density(ppp_test)
 summary(dens)
 plot(dens)
 
 dimyx=c(ny, nx)
+
+mean(lbr_data_final_NE$pop2010)
 
 #### PPM TEST ####
 win<-as(country,"owin")
