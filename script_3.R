@@ -73,7 +73,50 @@ growth_10_15<-overlay(gpw4_2010,gpw4_2015,fun=function(r1,r2){return((r2-r1)/r1)
 load("lbr_data_final.RData")
 
 
+#### CHANGE COORDINATES ####
+lbr_data_final_NE<-lbr_data_final
+coordinates(lbr_data_final_NE)<-c("long","lat")
+proj4string(lbr_data_final_NE)<-CRS("+proj=longlat +datum=WGS84")
+lbr_data_final_NE<- spTransform(lbr_data_final_NE, CRS("+proj=utm +zone=29 ellps=WGS84"))
+lbr_data_final_NE<- as.data.frame(lbr_data_final_NE)
+colnames(lbr_data_final_NE)[9:10]<-c("east","north")
+
+country_NE<-spTransform(country, CRS("+proj=utm +zone=29 ellps=WGS84"))
+win_NE<-as(country_NE,"owin")
+ppp_test<-ppp(lbr_data_final_NE$east,lbr_data_final_NE$north,marks=lbr_data_final_NE$pop2010,window = win_NE)
+ppp_test<-rescale.ppp(ppp_test,1000)
+unitname(ppp_test)<-"kilometers"
+plot(ppp_test)
+summary(ppp_test)
+dens<-density(ppp_test,10)
+summary(dens)
+plot(dens)
+
+dimyx=c(ny, nx)
+
+#### PPM TEST ####
+win<-as(country,"owin")
+
+ppp0<-ppp(lbr_data_final$long,lbr_data_final$lat,marks=lbr_data_final$pop2010,window=win)
+test0<-ppm(ppp0)
+
+ppp1<-ppp(lbr_data_final$long,lbr_data_final$lat,window=win)
+text1<-ppm(ppp1)
+plot(density(simulate(text1)))
+plot(envelope(text1,Kest,nsim=39))
+
 #### Test Plots #####
+
+x<-runif(10,0,1) 
+y<-runif(10,0,1)
+xy<-ppp(x,y,c(0,1),c(0,1))
+summary(xy)
+dens<-density(xy)
+summary(dens)
+plot(xy)
+plot(density(xy))
+plot.new()
+identify.ppp(xy)
 
 plus_10_data<-subset(lbr_data_final,lbr_data_final$pop2010 >= 10)
 plus_20_data<-subset(lbr_data_final,lbr_data_final$pop2010 >= 20)
@@ -82,6 +125,12 @@ plus_30_data<-subset(lbr_data_final,lbr_data_final$pop2010 >= 30)
 win<-as(country,"owin")
 
 ppp0<-ppp(lbr_data_final$long,lbr_data_final$lat,marks=lbr_data_final$pop2010,window=win)
+summary(ppp0)
+ppp0_1<-ppp(lbr_data_final$long,lbr_data_final$lat,window=win)
+summary(ppp0)
+
+identify(ppp0)
+
 ppp1<-ppp(plus_10_data$long,plus_10_data$lat,marks=plus_10_data$pop2010,window=win)
 ppp2<-ppp(plus_20_data$long,plus_20_data$lat,marks=plus_20_data$pop2010,window=win)
 ppp3<-ppp(plus_30_data$long,plus_30_data$lat,marks=plus_30_data$pop2010,window=win)
