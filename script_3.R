@@ -85,6 +85,112 @@ gpw4_2000_clan2<-gpw4_2000_clan
 gpw4_2000_clan2$gpw.v4.population.count_2000<-gpw4_2000_clan2$gpw.v4.population.count_2000/clan_f_sum$x
 clan_df<-left_join(clan_f,gpw4_2000_clan,by=c("id"="ID"))
 clan_df<-left_join(clan_df,gpw4_2000_clan2,by=c("id"="ID"))
+clan_f_sum$id<-as.numeric(clan_f_sum$id)
+
+test_shp<-disaggregate(clan)
+
+sp_list<-list()
+sp_list<- lapply(1:length(clan), function(i) clan[i,])
+pop_list<-gpw4_2000_clan$gpw.v4.population.count_2000
+pop_list<-pop_list/100
+pop_list<-round(pop_list,0)
+
+sp_list[[1]]
+pop_list[[1]]
+
+### LOOP to get all random points ###
+df_final<-data.frame(matrix(nrow=0,ncol=4))
+for (i in length(sp_list)){
+  sp_list_f<-fortify(sp_list[[i]])
+  colnames(sp_list_f)[1]<-"x"
+  colnames(sp_list_f)[2]<-"y"
+  df<-data.frame(matrix(nrow=0,ncol=4))
+  colnames(df)<-c("x","y","id","contains")
+  while(nrow(df) < 100) {
+    df.1<-data.frame(matrix(nrow=100,ncol=3))
+    colnames(df.1)<-c("x","y","id")
+    df.1$x<-round(runif(100,max=(max(sp_list_f$x,na.rm=T)+.00000001),min = (min(sp_list_f$x,na.rm=T)-.00000001)),digits=5)
+    df.1$y<-round(runif(100,max=(max(sp_list_f$y,na.rm=T)+.00000001),min = (min(sp_list_f$y,na.rm=T)-.00000001)),digits=5)
+    df.1$id<-row.names(df.1)
+    df.2<-data.frame(t(sapply(1:100,function(i) list(id=df.1[i,3], gContains(sp_list[[i]],SpatialPoints(df.1[i,1:2],proj4string=CRS(proj4string(sp_list[[i]]))))))))
+    colnames(df.2)<-c("id","contains")
+    df.2$id<-as.character(df.2$id)
+    df.2$contains<-as.character(df.2$contains)
+    df.3<-left_join(df.1,df.2,by="id")
+    df.3<-subset(df.3, df.3[,4]=="TRUE")
+    df<-rbind(df,df.3)
+    df<-unique(df)
+  }
+  df<-df[1:pop_list[[i]],]
+  df_final<-rbind(df_final,df)
+}
+
+
+## TEST ##
+df_final<-data.frame(matrix(nrow=0,ncol=4))
+
+sp_list_f<-fortify(sp_list[[3]])
+colnames(sp_list_f)[1]<-"x"
+colnames(sp_list_f)[2]<-"y"
+df<-data.frame(matrix(nrow=0,ncol=4))
+colnames(df)<-c("x","y","id","contains")
+n<-pop_list[[3]]
+df.1<-data.frame(matrix(nrow=1000,ncol=3))
+colnames(df.1)<-c("x","y","id")
+df.1$x<-round(runif(1000,max=(max(sp_list_f$x,na.rm=T)+.00000001),min = (min(sp_list_f$x,na.rm=T)-.00000001)),digits=5)
+df.1$y<-round(runif(1000,max=(max(sp_list_f$y,na.rm=T)+.00000001),min = (min(sp_list_f$y,na.rm=T)-.00000001)),digits=5)
+df.1$id<-row.names(df.1)
+df.2<-data.frame(t(sapply(1:1000,function(i) list(id=df.1[i,3], gContains(sp_list[[3]],SpatialPoints(df.1[i,1:2],proj4string=CRS(proj4string(sp_list[[3]]))))))))
+colnames(df.2)<-c("id","contains")
+df.2$id<-as.character(df.2$id)
+df.2$contains<-as.character(df.2$contains)
+df.3<-left_join(df.1,df.2,by="id")
+df.3<-subset(df.3, df.3[,4]=="TRUE")
+df<-rbind(df,df.3)
+df<-unique(df)
+df<-df[1:n,]
+df_final<-rbind(df_final,df)
+
+pop_list
+
+
+if (class(shp)=="SpatialPolygonsDataFrame"){
+  shp_f<-fortify(shp)
+  colnames(shp_f)[1]<-"x"
+  colnames(shp_f)[2]<-"y"
+  df<-data.frame(matrix(nrow=0,ncol=4))
+  colnames(df)<-c("x","y","id","contains")
+  while(nrow(df) < n) {
+    df.1<-data.frame(matrix(nrow=10,ncol=3))
+    colnames(df.1)<-c("x","y","id")
+    df.1$x<-round(runif(10,max=(max(shp_f$x,na.rm=T)+.00000001),min = (min(shp_f$x,na.rm=T)-.00000001)),digits=5)
+    df.1$y<-round(runif(10,max=(max(shp_f$y,na.rm=T)+.00000001),min = (min(shp_f$y,na.rm=T)-.00000001)),digits=5)
+    df.1$id<-row.names(df.1)
+    df.2<-data.frame(t(sapply(1:10,function(i) list(id=df.1[i,3], gContains(shp,SpatialPoints(df.1[i,1:2],proj4string=CRS(proj4string(shp))))))))
+    colnames(df.2)<-c("id","contains")
+    df.2$id<-as.character(df.2$id)
+    df.2$contains<-as.character(df.2$contains)
+    df.3<-left_join(df.1,df.2,by="id")
+    df.3<-subset(df.3, df.3[,4]=="TRUE")
+    df<-rbind(df,df.3)
+    #df<-unique(df)
+  }
+  df<-df[1:n,]
+  a<-ggplot(shp_f,aes(x=x,y=y))+
+    geom_map(data=shp_f,map=shp_f,aes(x=x, y=y,map_id=id))+
+    geom_point(data=df,aes(x=x,y=y),size=.2,color="red")
+
+for (i in 1:816){
+  poly<-clan[i,]@polygons[[]]
+}
+
+
+
+test_poly<-clan[1,]@polygons[[1]]
+class(test_poly)
+plot(test_poly)
+x<-fortify(test_poly)
+test_poly<-Polygons(test_poly)
 
 list_owin<-list()
 for (id in clan_df$id){
