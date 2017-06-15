@@ -72,6 +72,39 @@ growth_10_15<-overlay(gpw4_2010,gpw4_2015,fun=function(r1,r2){return((r2-r1)/r1)
 ## Load final data ##
 load("lbr_data_final.RData")
 
+
+#### SPATSTAT EXPERIMENT ####
+
+win1<-owin(xrange = c(0,1),yrange = c(0,1))
+ppp1<-rpoint(14,win=win1)
+win2<-owin(c(-1,0),c(0,1))
+ppp2<-rpoint(45,win=win2)
+win3<-owin(xrange = c(-1,0),yrange = c(-1,0))
+ppp3<-rpoint(25,win=win3)
+win4<-owin(c(0,1),c(-1,0))
+ppp4<-rpoint(10,win=win4)
+win_total<-owin(c(-1,1),c(-1,1))
+ppp_total<-superimpose(ppp1,ppp2,ppp3,ppp4,W=win_total)
+plot(ppp_total)
+dens<-density(ppp_total,eps=.01)
+plot(dens)
+summary(dens)
+ppm_test<-ppm(ppp_total,~dens,covariates=list(dens=dens))
+y<-predict(ppm_test)
+plot(y)
+x<-simulate(ppm_test,nsim = 10)
+plot(density(x))
+
+k<-Kest(ppp_total)
+plot(k)
+
+
+windows<-list(win1,win2,win3,win4)
+tess1<-tess(tiles=windows)
+plot(tess1)
+plot(win1)
+plot(win2)
+
 #### RANDOMLY DISTRIBUTE POINTS ####
 gpw4_2000<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2000.tif")
 gpw4_2000<-crop(gpw4_2000,extent(country))
@@ -92,11 +125,149 @@ test_shp<-disaggregate(clan)
 sp_list<-list()
 sp_list<- lapply(1:length(clan), function(i) clan[i,])
 pop_list<-gpw4_2000_clan$gpw.v4.population.count_2000
-pop_list<-pop_list/100
+pop_list<-pop_list/1000
 pop_list<-round(pop_list,0)
 
 sp_list[[1]]
 pop_list[[1]]
+
+
+sp_list_2<-list()
+sp_list_2<- lapply(1:length(clan), function(i) clan[i,]@polygons[[1]])
+pop_list_2<-gpw4_2000_clan$gpw.v4.population.count_2000
+pop_list_2<-pop_list_2/100
+pop_list_2<-round(pop_list_2,0)
+
+sp_list_2[[1]]
+pop_list_2[[1]]
+
+df_final<-matrix(nrow=0,ncol=4)
+coords<-lapply(1:816,function(i) sp_list_2[[i]]@Polygons[[1]]@coords)
+x<-lapply(1:816,function(i) runif(100,max=(max(coords[[i]][,1],na.rm=T)+.00000001),min = (min(coords[[i]][,1],na.rm=T)-.00000001)))
+y<-lapply(1:816,function(i) runif(100,max=(max(coords[[i]][,2],na.rm=T)+.00000001),min = (min(coords[[i]][,2],na.rm=T)-.00000001)))
+points<-lapply(1:816,function(i) point.in.polygon(coords[[i]][,1],coords[[i]][,2],x[[i]],y[[i]]))
+points
+
+x<-sapply(1:816,function(i) sum(nrow(coords[[i]])))
+sum(x)
+
+coords[[1]]
+x[[1]]
+sum(pop_list_2)
+
+id<-1:nrow(data3)
+data3<-cbind(data3,id)
+
+8.5500000-sqrt(2*(.5*.008333)^2)
+8.5500000-.5*.008333
+-9.775000+.5*.008333
+
+data3<-as.data.frame(data3)
+data3$id<-as.character(data3$id)
+
+good_good<-left_join(y,data3,by="id")
+colnames(good_good)<-c("long","lat","order","hole","piece","id","group","ct_long","ct_lat","pop2010")
+save(good_good,file="good_good.RData")
+good_good2<-left_join(good_good,lbr_data_final,by=c(c("ct_long"="long"),c("ct_lat"="lat")))
+good_good2<-good_good2[,c(1:9,11:17)]
+colnames(good_good2)[6]<-"id"
+colnames(good_good2)[12]<-"pop2010"
+save(good_good2,file="complete_data.RData")
+
+system.time(sub<-subset(good_good2,good_good2$id=="1"))
+system.time(sub2<-good_good2[(1+(5*(100000-1))):(5*100000),])
+sub$pop2010[1]
+
+pops<-good_good2[,c(6,10:16)]
+pops[,c(2:8)]<-pops[,c(2:8)]/5
+pops<-aggregate(.~id,pops,FUN=sum)
+pops$id<-as.numeric(pops$id)
+pops<-pops[order(pops$id),]
+row.names(pops)<-pops$id
+pops[,c(2:8)]<-round(pops[,c(2:8)],0)
+pop_list<-pops[,4]
+
+m_final<-matrix(nrow=0,ncol=3)
+for (i in 1:112830){
+  sub<-good_good2[(1+(5*(i-1))):(5*i),]
+  m1<-matrix(nrow=0,ncol=3)
+  while(nrow(m1) < pop_list[[i]]) {
+    m2<-matrix(nrow=100,ncol=3)
+    m2[,1]<-runif(100,max=(max(sub$long,na.rm=T)+.00000001),min = (min(sub$long,na.rm=T)-.00000001))
+    m2[,2]<-runif(100,max=(max(sub$lat,na.rm=T)+.00000001),min = (min(sub$lat,na.rm=T)-.00000001))
+    m2[,3]<-point.in.polygon(m2[,1],m2[,2],sub$long,sub$lat)
+    m2<-subset(m2, m2[,3]>0)
+    m1<-rbind(m1,m2)
+    m1<-unique(m1)
+  }
+  m1<-m1[1:pop_list[[i]],]
+  m_final<-rbind(m_final,m1)
+}
+
+
+p<-point.in.polygon(coords[[1]][,1],coords[[1]][,2],x[[1]],y[[1]])
+
+m_final<-matrix(nrow=0,ncol=3)
+for (i in 1:length(coords)){
+  m1<-matrix(nrow=0,ncol=3)
+  while(nrow(m1) < pop_list_2[[i]]) {
+    m2<-matrix(nrow=100,ncol=3)
+    m2[,1]<-runif(100,max=(max(coords[[i]][,1],na.rm=T)+.00000001),min = (min(coords[[i]][,1],na.rm=T)-.00000001))
+    m2[,2]<-runif(100,max=(max(coords[[i]][,2],na.rm=T)+.00000001),min = (min(coords[[i]][,2],na.rm=T)-.00000001))
+    m2[,3]<-point.in.polygon(m2[,1],m2[,2],coords[[i]][,1],coords[[i]][,2])
+    m2<-subset(m2, m2[,3]>0)
+    m1<-rbind(m1,m2)
+    m1<-unique(m1)
+  }
+  m1<-m1[1:pop_list_2[[i]],]
+  m_final<-rbind(m_final,m1)
+}
+
+win<-as(country,"owin")
+hope<-ppp(m_final[,1],m_final[,2],window=win)
+plot(hope)
+dens<-density(hope,.5)
+plot(dens)
+summary(hope)
+plot(density(hope))
+
+
+m_final<-matrix(nrow=0,ncol=3)
+m1<-matrix(nrow=0,ncol=3)
+while(nrow(m1) < 100) {
+  m2<-matrix(nrow=100,ncol=3)
+  m2[,1]<-runif(100,max=(max(coords[[1]][,1],na.rm=T)+.00000001),min = (min(coords[[1]][,1],na.rm=T)-.00000001))
+  m2[,2]<-runif(100,max=(max(coords[[1]][,2],na.rm=T)+.00000001),min = (min(coords[[1]][,2],na.rm=T)-.00000001))
+  m2[,3]<-point.in.polygon(m2[,1],m2[,2],coords[[1]][,1],coords[[1]][,2])
+  m2<-subset(m2, m2[,3]>0)
+  m1<-rbind(m1,m2)
+  m1<-unique(m1)
+}
+m1<-m1[1:pop_list_2[[1]],]
+m_final<-rbind(m_final,m1)
+
+
+
+
+nrow(coords[[1]])
+
+df<-data.frame(matrix(nrow=0,ncol=4))
+colnames(df)<-c("x","y","id","contains")
+df.1<-data.frame(matrix(nrow=100,ncol=3))
+colnames(df.1)<-c("x","y","id")
+df.1$x<-round(runif(100,max=(max(sp_list_f$x,na.rm=T)+.00000001),min = (min(sp_list_2$x,na.rm=T)-.00000001)),digits=5)
+df.1$y<-round(runif(100,max=(max(sp_list_f$y,na.rm=T)+.00000001),min = (min(sp_list_2$y,na.rm=T)-.00000001)),digits=5)
+df.1$id<-row.names(df.1)
+df.2<-data.frame(t(sapply(1:100,function(i) list(id=df.1[i,3], gContains(sp_list[[i]],SpatialPoints(df.1[i,1:2],proj4string=CRS(proj4string(sp_list[[i]]))))))))
+colnames(df.2)<-c("id","contains")
+df.2$id<-as.character(df.2$id)
+df.2$contains<-as.character(df.2$contains)
+df.3<-left_join(df.1,df.2,by="id")
+df.3<-subset(df.3, df.3[,4]=="TRUE")
+df<-rbind(df,df.3)
+df<-unique(df)
+df<-df[1:pop_list[[i]],]
+df_final<-rbind(df_final,df)
 
 ### LOOP to get all random points ###
 df_final<-data.frame(matrix(nrow=0,ncol=4))
