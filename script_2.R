@@ -871,8 +871,7 @@ load("lbr_data_final.RData")
 city_points<-read.csv("liberia_city_names.csv")
 city_points<-distinct(city_points,Latitude,Longitude,.keep_all = T)
 
-load("comNames.RData")
-load("LibCities2500.RData")
+
 
 ## Test Plots ##
 
@@ -1051,18 +1050,6 @@ plot3D(gpw4test3, useLegend = T, at = pikachu, col = terrain.colors(20))
 gpw4test4 <- crop(gpw4, extent (-9,-8.9,6,6.5))
 plot3D(gpw4test4, useLegend = T, at = pikachu, col = terrain.colors(20))
 
-##Plotly testing: Needs to be in the form of numbers/dataframe and not a raster so plotly will not work at the moment 
-p <- plot_ly(
-  x = rnorm( 1000 ), y = rnorm( 1000 ),
-  mode = 'markers' )
-p
-
-t<-plot_ly(type='scattergeo', lon=c(42, 39), lat=c(12,22), text=c('Lbr'), mode='markers')
-t
-
-plot_geo()
-
-t1 <- load("gpw4_lbr_spdf.RData")
 
 ###Plan 3: 3D plots of 2000, 2005, 2010, and 2015 data. Compare, then find an area that experienced growth then zoom in and replot the same years
 country <- readOGR(dsn="shapefiles", layer="liberia_revised", stringsAsFactors=FALSE, verbose=FALSE)
