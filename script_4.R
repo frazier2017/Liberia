@@ -88,6 +88,16 @@ load("points_df_10percent.RData")
 load("city_points.RData")
 
 ####
+7.001112-.5
+
+-9.471618-.5
+point<-data.frame(long=-9.471618,lat=7.001112)
+
+gabargna<-subset(good_good2, ((good_good2$long>=-9.971618 & good_good2$long<=-8.971618) & 
+                              (good_good2$lat>=6.501112 & good_good2$lat<=7.501112)))
+
+ggplot()+geom_map(data=gabargna,map=gabargna,aes(x=long,y=lat,map_id=id))+geom_point(data = point,aes(x=long,y=lat))
+
 #### SPATSTAT EXPERIMENT ####
 
 win1<-owin(xrange = c(0,1),yrange = c(0,1))
@@ -205,6 +215,29 @@ smooth_10percent<-smooth(ppp_10percent)
 ####
 #### 2% SAMPLE ####
 
+pops<-good_good2[,c(6,10:16)]
+pops[,c(2:8)]<-pops[,c(2:8)]/5
+pops2<-aggregate(.~id,pops,FUN=sum)
+pops2$id<-as.numeric(pops2$id)
+pops2<-pops2[order(pops2$id),]
+row.names(pops2)<-pops2$id
+pops2[,c(2:8)]<-round(pops2[,c(2:8)]/50,0)
+
+test_pop<-subset(pops2,pops2$pop2010<=0)
+test_grouping<-pops2[pops2$id %in% test_pop$id,]
+quartz()
+ggplot(country_f)+geom_map(data=test_grouping,map = test_grouping,aes(x=long,y=lat,map_id=id))
+sum(test_grouping$pop2010)
+test<-good_good2[,c(1:9)]
+test$id<-as.numeric(test$id)
+test_grouping<-right_join(test,test_grouping,by = c("id"="id"))
+x<-chull(test_grouping$long,test_grouping$lat)
+poly<-test_grouping[x,]
+ggplot()+geom_polygon(data=poly,aes(x=long,y=lat))
+
+pop_list<-pops[,4]
+sum(pop_list)
+sum(pops[,4])
 ####
 #### PPM TEST (Clan level) ####
 gpw4_2000_clan<-extract(gpw4_2000,clan,df=TRUE)
