@@ -88,15 +88,79 @@ load("points_df_10percent.RData")
 load("city_points.RData")
 
 ####
-7.001112-.5
 
--9.471618-.5
+#### SAMPLE GABARGNA ####
+
 point<-data.frame(long=-9.471618,lat=7.001112)
 
 gabargna<-subset(good_good2, ((good_good2$long>=-9.971618 & good_good2$long<=-8.971618) & 
                               (good_good2$lat>=6.501112 & good_good2$lat<=7.501112)))
+ids<-unique(gabargna$id)
 
-ggplot()+geom_map(data=gabargna,map=gabargna,aes(x=long,y=lat,map_id=id))+geom_point(data = point,aes(x=long,y=lat))
+gabargna<-good_good2[good_good2$id %in% ids,]
+save(gabargna,file="gabargna.RData")
+#quartz()
+ggplot()+geom_map(data=gabargna,map=gabargna,aes(x=long,y=lat,map_id=id))+geom_point(data = point,aes(x=long,y=lat))+geom_map(data=clan_f,map=clan_f,aes(x=long,y=lat,map_id=id))
+
+g_pops<-gabargna[,c(6,10:16)]
+g_pops[,c(2:8)]<-g_pops[,c(2:8)]/5
+g_pops<-aggregate(.~id,g_pops,FUN=sum)
+g_pops$id<-as.numeric(g_pops$id)
+g_pops<-g_pops[order(g_pops$id),]
+row.names(g_pops)<-g_pops$id
+g_pops[,c(2:8)]<-round(g_pops[,c(2:8)]/10,0)
+g_pop_list<-g_pops[,4]
+sum(g_pop_list)
+sum(g_pops[,4])
+
+m_final<-matrix(nrow=0,ncol=3)
+for (i in 1:13402){
+  if (g_pops[i,4] > 0){
+    sub<-gabargna[(1+(5*(i-1))):(5*i),]
+    m1<-matrix(nrow=0,ncol=3)
+    while(nrow(m1) < g_pops[i,4]) {
+      m2<-matrix(nrow=100,ncol=3)
+      m2[,1]<-runif(100,max=(max(sub$long,na.rm=T)+.00000001),min = (min(sub$long,na.rm=T)-.00000001))
+      m2[,2]<-runif(100,max=(max(sub$lat,na.rm=T)+.00000001),min = (min(sub$lat,na.rm=T)-.00000001))
+      m2[,3]<-point.in.polygon(m2[,1],m2[,2],sub$long,sub$lat)
+      m2<-subset(m2, m2[,3]>0)
+      m1<-rbind(m1,m2)
+      m1<-unique(m1)
+    }
+    m1<-m1[1:g_pops[i,4],]
+    m_final<-rbind(m_final,m1)
+  }
+}
+
+gabargna_points_df<-m_final
+save(gabargna_points_df,file="gabargna_points_df.RData")
+load("ppp_points_df.RData")
+
+win<- owin(xrange=c(-9.975,-8.966667),yrange=c(6.5,7.508333))
+ppp_gabargna<-ppp(m_final[,1],m_final[,2],window=win)
+summary(ppp_gabargna)
+plot(ppp_gabargna,chars=".")
+
+dens_gabargna<-density(ppp_gabargna,eps=.008333)
+summary(dens_gabargna)
+plot(dens_gabargna)
+
+ppm_gabargna<-ppm(ppp_gabargna,~dens,covariates = list(dens=dens_gabargna))
+sim_gabargna<-simulate(ppm_gabargna,nsim = 10)
+plot(sim_gabargna,chars=".")
+plot(density(sim_gabargna))
+
+quadratcount(ppp_gabargna,nx=2,ny=2)
+
+intens_gabargna<-intensity.ppp(ppp_gabargna)
+smooth_gabargna<-smooth(ppp_gabargna)
+
+bong<-clan[which(clan@data$FIRST_CCNA=="Bong"),]
+jorquelleh<-clan[which(clan@data$FIRST_DNAM=="Jorquelleh"),]
+
+jorquelleh_df<-extract(gpw4_2010,jorquelleh,df=T)
+
+####
 
 #### SPATSTAT EXPERIMENT ####
 
@@ -114,6 +178,8 @@ plot(ppp_total)
 dens<-density(ppp_total)
 plot(dens)
 summary(dens)
+plot(quadratcount(ppp_total))
+
 ppm1<-ppm(ppp_total,~1)
 ppm2<-update(ppm1,~dens,covariates=list(dens=dens))
 ppm3<-update(ppm2,ppp_total~dens,covariates=list(dens=dens))
