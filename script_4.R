@@ -155,12 +155,145 @@ quadratcount(ppp_gabargna,nx=2,ny=2)
 intens_gabargna<-intensity.ppp(ppp_gabargna)
 smooth_gabargna<-smooth(ppp_gabargna)
 
-bong<-clan[which(clan@data$FIRST_CCNA=="Bong"),]
-jorquelleh<-clan[which(clan@data$FIRST_DNAM=="Jorquelleh"),]
+#### SAMPLE JORQUELLEH DIST ####
 
-jorquelleh_df<-extract(gpw4_2010,jorquelleh,df=T)
+jorquelleh<-clan[which(clan@data$FIRST_DNAM=="Jorquelleh"),]
+plot(jorquelleh)
+jorquelleh@data$ID<-rep(1,5)
+jorquelleh  <- unionSpatialPolygons(jorquelleh,jorquelleh@data$ID)
+plot(jorquelleh)
+jorquelleh_f<-point.in.polygon(good_good2$long,good_good2$lat,jorquelleh@polygons[[1]]@Polygons[[1]]@coords[,1],jorquelleh@polygons[[1]]@Polygons[[1]]@coords[,2])
+jorquelleh_f<-cbind(good_good2,jorquelleh_f)
+jorquelleh_f<-subset(jorquelleh_f,jorquelleh_f>0)
+ggplot()+geom_map(data=jorquelleh_f,map=jorquelleh_f,aes(x=long,y=lat,map_id=id))+geom_point(data=point,aes(x=long,y=lat))
+
+
+j_pops<-jorquelleh_f[,c(6,10:16)]
+ids<-unique(j_pops$id)
+j_pops[,c(2:8)]<-j_pops[,c(2:8)]/5
+sum(j_pops$pop2010)
+j_pops<-aggregate(.~id,j_pops,FUN=sum)
+j_pops$id<-as.numeric(j_pops$id)
+j_pops<-j_pops[order(j_pops$id),]
+row.names(j_pops)<-j_pops$id
+j_pops[,c(2:8)]<-round(j_pops[,c(2:8)],0)
+sum(j_pops[,4])
+j_sub<-good_good2[good_good2$id %in% ids,]
+
+
+m_final<-matrix(nrow=0,ncol=3)
+for (i in 1:1645){
+  if (j_pops[i,4] > 0){
+    sub<-j_sub[(1+(5*(i-1))):(5*i),]
+    m1<-matrix(nrow=0,ncol=3)
+    while(nrow(m1) < j_pops[i,4]) {
+      m2<-matrix(nrow=100,ncol=3)
+      m2[,1]<-runif(100,max=(max(sub$long,na.rm=T)+.00000001),min = (min(sub$long,na.rm=T)-.00000001))
+      m2[,2]<-runif(100,max=(max(sub$lat,na.rm=T)+.00000001),min = (min(sub$lat,na.rm=T)-.00000001))
+      m2[,3]<-point.in.polygon(m2[,1],m2[,2],jorquelleh@polygons[[1]]@Polygons[[1]]@coords[,1],jorquelleh@polygons[[1]]@Polygons[[1]]@coords[,2])
+      m2<-subset(m2, m2[,3]>0)
+      m1<-rbind(m1,m2)
+      m1<-unique(m1)
+    }
+    m1<-m1[1:j_pops[i,4],]
+    m_final<-rbind(m_final,m1)
+  }
+}
+
+jorquelleh_f_points_df<-m_final
+save(jorquelleh_f_points_df,file="jorquelleh_f_points_df.RData")
+
+
+win<- as(jorquelleh,"owin")
+ppp_jorquelleh_f<-ppp(m_final[,1],m_final[,2],window=win)
+summary(ppp_jorquelleh_f)
+plot(ppp_jorquelleh_f,chars=".")
+
+dens_jorquelleh_f<-density(ppp_jorquelleh_f,eps=.008333)
+summary(dens_jorquelleh_f)
+plot(dens_jorquelleh_f)
+
+ppm_jorquelleh_f<-ppm(ppp_jorquelleh_f,~dens,covariates = list(dens=dens_jorquelleh_f))
+sim_jorquelleh_f<-simulate(ppm_jorquelleh_f,nsim = 10)
+plot(sim_jorquelleh_f,chars=".")
+plot(density(sim_jorquelleh_f))
+
+plot(quadratcount(ppp_jorquelleh_f,nx=10,ny=10))
+
+intens_jorquelleh_f<-intensity.ppp(ppp_jorquelleh_f)
+smooth_jorquelleh_f<-smooth(ppp_jorquelleh_f)
 
 ####
+
+#### SMALL AREA SAMPLE ####
+
+bong_sub<-clan[clan@data$FIRST_DNAM %in% c("Jorquelleh","Panta","Zota","Kpaai","Kokoyah","Suakoko","Tukpahblee","Boinsen"),]
+plot(bong_sub)
+bong_sub@data$ID<-rep(1,24)
+bong_sub  <- unionSpatialPolygons(bong_sub,bong_sub@data$ID)
+plot(bong_sub)
+bong_sub_f<-point.in.polygon(good_good2$long,good_good2$lat,bong_sub@polygons[[1]]@Polygons[[1]]@coords[,1],bong_sub@polygons[[1]]@Polygons[[1]]@coords[,2])
+bong_sub_f<-cbind(good_good2,bong_sub_f)
+bong_sub_f<-subset(bong_sub_f,bong_sub_f>0)
+ggplot()+geom_map(data=bong_sub_f,map=bong_sub_f,aes(x=long,y=lat,map_id=id))+geom_point(data=point,aes(x=long,y=lat))
+
+
+bong_sub_pops<-bong_sub_f[,c(6,10:16)]
+ids<-unique(bong_sub_pops$id)
+bong_sub_pops[,c(2:8)]<-bong_sub_pops[,c(2:8)]/5
+sum(bong_sub_pops$pop2010)
+bong_sub_pops<-aggregate(.~id,bong_sub_pops,FUN=sum)
+bong_sub_pops$id<-as.numeric(bong_sub_pops$id)
+bong_sub_pops<-bong_sub_pops[order(bong_sub_pops$id),]
+row.names(bong_sub_pops)<-bong_sub_pops$id
+bong_sub_pops[,c(2:8)]<-round(bong_sub_pops[,c(2:8)],0)
+sum(bong_sub_pops[,4])
+b_sub<-good_good2[good_good2$id %in% ids,]
+
+
+m_final<-matrix(nrow=0,ncol=3)
+for (i in 1:29340){
+  if (bong_sub_pops[i,4] > 0){
+    sub<-b_sub[(1+(5*(i-1))):(5*i),]
+    m1<-matrix(nrow=0,ncol=3)
+    while(nrow(m1) < bong_sub_pops[i,4]) {
+      m2<-matrix(nrow=100,ncol=3)
+      m2[,1]<-runif(100,max=(max(sub$long,na.rm=T)+.00000001),min = (min(sub$long,na.rm=T)-.00000001))
+      m2[,2]<-runif(100,max=(max(sub$lat,na.rm=T)+.00000001),min = (min(sub$lat,na.rm=T)-.00000001))
+      m2[,3]<-point.in.polygon(m2[,1],m2[,2],bong_sub@polygons[[1]]@Polygons[[1]]@coords[,1],bong_sub@polygons[[1]]@Polygons[[1]]@coords[,2])
+      m2<-subset(m2, m2[,3]>0)
+      m1<-rbind(m1,m2)
+      m1<-unique(m1)
+    }
+    m1<-m1[1:bong_sub_pops[i,4],]
+    m_final<-rbind(m_final,m1)
+  }
+}
+
+bong_sub_f_points_df<-m_final
+save(bong_sub_f_points_df,file="bong_sub_f_points_df.RData")
+
+
+win<- as(bong_sub,"owin")
+ppp_bong_sub_f<-ppp(m_final[,1],m_final[,2],window=win)
+summary(ppp_bong_sub_f)
+plot(ppp_bong_sub_f,chars=".")
+
+dens_bong_sub_f<-density(ppp_bong_sub_f,eps=.008333)
+summary(dens_bong_sub_f)
+plot(dens_bong_sub_f)
+points(point)
+
+ppm_bong_sub_f<-ppm(ppp_bong_sub_f,~dens,covariates = list(dens=dens_bong_sub_f))
+sim_bong_sub_f<-simulate(ppm_bong_sub_f,nsim = 10)
+plot(sim_bong_sub_f,chars=".")
+plot(density(sim_bong_sub_f))
+
+plot(quadratcount(ppp_bong_sub_f,nx=10,ny=10))
+
+intens_bong_sub_f<-intensity.ppp(ppp_bong_sub_f)
+smooth_bong_sub_f<-smooth(ppp_bong_sub_f)
+
 
 #### SPATSTAT EXPERIMENT ####
 
