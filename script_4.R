@@ -1,7 +1,8 @@
 rm(list=ls())
 setwd("~/GitHub/Liberia")
+quartz()
 
-
+#install.packages("SpaDES",dependencies = T)
 library(rgdal)
 library(dplyr)
 library(rgeos)
@@ -20,7 +21,7 @@ library(rgl)
 library(scales)
 library(plot3Drgl)
 library(akima)
-
+library(SpaDES)
 
 
 #### DATA ####
@@ -86,6 +87,63 @@ load("points_df_10percent.RData")
 
 ## load city points data ##
 load("city_points.RData")
+
+####
+
+#### HIGH LOW METHOD CLUSTERING ####
+gpw4_2010<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2010.tif")
+gpw4_2010<-crop(gpw4_2010,extent(country))
+gpw4_2010<-mask(gpw4_2010,country)
+
+high_low_lbr<-data.frame(cell=cellsFromExtent(gpw4_2010,country), pop=getValues(gpw4_2010))
+high_low_lbr$long<-xFromCell(gpw4_2010,high_low_lbr$cell)
+high_low_lbr$lat<-yFromCell(gpw4_2010,high_low_lbr$cell)
+high_low_lbr$pop2<-high_low_lbr$pop
+high_low_lbr$pop2[is.na(high_low_lbr$pop2)]<-0
+mean<-mean(high_low_lbr$pop,na.rm=T)
+
+above_mean<-sapply(1:249984,function(i) {high_low_lbr$pop2[i] >= mean})
+adj<-sapply(1:249984, function(i) {adj(gpw4_2010,high_low_lbr$cell[i],directions=4,pairs=F,include=F)})
+adj_mean<-lapply(1:249984, function(i) {mean(sapply(1:length(adj[[i]]), function(j) {high_low_lbr$pop[adj[[i]][j]]}),na.rm=T)})
+
+high_low_lbr$abv_mean<-above_mean
+high_low_lbr$adj<-adj
+high_low_lbr$adj_mean<-adj_mean
+
+quart_3<-mean(high_low_lbr$pop[which(high_low_lbr$abv_mean==T)],na.rm=T)
+quart_1<-mean(high_low_lbr$pop[which(high_low_lbr$abv_mean==F)],na.rm=T)
+
+high_low_lbr$score<-ifelse(high_low_lbr$pop >= quart_3 & high_low_lbr$adj_mean >= quart_3, 44,
+                ifelse(high_low_lbr$pop >= quart_3 & high_low_lbr$adj_mean >= mean, 43,
+                ifelse(high_low_lbr$pop >= quart_3 & high_low_lbr$adj_mean >= quart_1, 42,
+                ifelse(high_low_lbr$pop >= quart_3 & high_low_lbr$adj_mean < quart_1, 41,
+                       
+                ifelse(high_low_lbr$pop < quart_3 & high_low_lbr$pop >= mean & high_low_lbr$adj_mean >= quart_3, 34,
+                ifelse(high_low_lbr$pop < quart_3 & high_low_lbr$pop >= mean & high_low_lbr$adj_mean < quart_3 & high_low_lbr$adj_mean >= mean, 33,
+                ifelse(high_low_lbr$pop < quart_3 & high_low_lbr$pop >= mean & high_low_lbr$adj_mean < mean & high_low_lbr$adj_mean >= quart_1, 32,
+                ifelse(high_low_lbr$pop < quart_3 & high_low_lbr$pop >= mean & high_low_lbr$adj_mean < quart_1, 31,
+                       
+                ifelse(high_low_lbr$pop < mean & high_low_lbr$pop >= quart_1 & high_low_lbr$adj_mean >= quart_3, 24,
+                ifelse(high_low_lbr$pop < mean & high_low_lbr$pop >= quart_1 & high_low_lbr$adj_mean < quart_3 & high_low_lbr$adj_mean >= mean, 23,
+                ifelse(high_low_lbr$pop < mean & high_low_lbr$pop >= quart_1 & high_low_lbr$adj_mean < mean & high_low_lbr$adj_mean >= quart_1, 22,
+                ifelse(high_low_lbr$pop < mean & high_low_lbr$pop >= quart_1 & high_low_lbr$adj_mean < quart_1, 21,
+                       
+                ifelse(high_low_lbr$pop < quart_1 & high_low_lbr$adj_mean > quart_3, 14,
+                ifelse(high_low_lbr$pop < quart_1 & high_low_lbr$adj_mean < quart_3 & high_low_lbr$adj_mean >= mean, 13,
+                ifelse(high_low_lbr$pop < quart_1 & high_low_lbr$adj_mean < mean & high_low_lbr$adj_mean >= quart_1, 12,
+                ifelse(high_low_lbr$pop < quart_1 & high_low_lbr$adj_mean < quart_1, 11,0)))))))))))))))) 
+
+save(high_low_lbr,file = "high_low_lbr.RData")
+
+high_low_lbr_rast<-rasterize(x=data.frame(high_low_lbr$long,high_low_lbr$lat),y=gpw4_2010,field=high_low_lbr$score)
+good_good3<-left_join(good_good2,high_low_lbr,by=c(c("ct_long"="long"),c("ct_lat"="lat")))
+
+load("high_low_lbr.RData")
+quartz()
+ggplot()+geom_map(data=good_good3,map=good_good3,aes(x=long,y=lat,map_id=id,fill=factor(score)))+
+  geom_map(data=dist_f,map=dist_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)
+ggplot()+geom_point(data=high_low,mapping=aes(x=long,y=lat,col=factor(score)),shape=15,cex=.8)+
+  geom_map(data=dist_f,map=dist_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)
 
 ####
 
@@ -205,23 +263,35 @@ save(jorquelleh_f_points_df,file="jorquelleh_f_points_df.RData")
 
 
 win<- as(jorquelleh,"owin")
+m_final[,3]<-as.numeric(m_final[,3])
 ppp_jorquelleh_f<-ppp(m_final[,1],m_final[,2],window=win)
 summary(ppp_jorquelleh_f)
 plot(ppp_jorquelleh_f,chars=".")
+x<-pixellate(ppp_jorquelleh_f,eps=.008333)
+summary(x)
+plot(x)
+points(point)
 
 dens_jorquelleh_f<-density(ppp_jorquelleh_f,eps=.008333)
 summary(dens_jorquelleh_f)
 plot(dens_jorquelleh_f)
 
-ppm_jorquelleh_f<-ppm(ppp_jorquelleh_f,~dens,covariates = list(dens=dens_jorquelleh_f))
+ppm_jorquelleh_f<-ppm(ppp_jorquelleh_f,~pixel,covariates = list(pixel=x))
+ppm_jorquelleh_f2<-ppm(ppp_jorquelleh_f,~1)
 sim_jorquelleh_f<-simulate(ppm_jorquelleh_f,nsim = 10)
-plot(sim_jorquelleh_f,chars=".")
+sim_jorquelleh_f2<-simulate(ppm_jorquelleh_f2,nsim = 10)
+#plot(sim_jorquelleh_f,chars=".")
+#plot(sim_jorquelleh_f2,chars=".")
 plot(density(sim_jorquelleh_f))
+plot(density(sim_jorquelleh_f2))
 
-plot(quadratcount(ppp_jorquelleh_f,nx=10,ny=10))
 
-intens_jorquelleh_f<-intensity.ppp(ppp_jorquelleh_f)
-smooth_jorquelleh_f<-smooth(ppp_jorquelleh_f)
+plot(cdf.test(ppm_jorquelleh_f,x,test="ks"))
+plot(cdf.test(ppm_jorquelleh_f2,x,test="ks"))
+
+plot(berman.test(ppm_jorquelleh_f,x))
+plot(berman.test(ppm_jorquelleh_f2,x))
+
 
 ####
 
@@ -297,50 +367,33 @@ smooth_bong_sub_f<-smooth(ppp_bong_sub_f)
 
 #### SPATSTAT EXPERIMENT ####
 
-win1<-owin(xrange = c(0,1),yrange = c(0,1))
-ppp1<-rpoint(14,win=win1)
-win2<-owin(c(-1,0),c(0,1))
-ppp2<-rpoint(45,win=win2)
-win3<-owin(xrange = c(-1,0),yrange = c(-1,0))
-ppp3<-rpoint(25,win=win3)
-win4<-owin(c(0,1),c(-1,0))
-ppp4<-rpoint(10,win=win4)
-win_total<-owin(c(-1,1),c(-1,1))
-ppp_total<-superimpose(ppp1,ppp2,ppp3,ppp4,W=win_total)
-plot(ppp_total)
-dens<-density(ppp_total)
-plot(dens)
-summary(dens)
-plot(quadratcount(ppp_total))
 
-ppm1<-ppm(ppp_total,~1)
-ppm2<-update(ppm1,~dens,covariates=list(dens=dens))
-ppm3<-update(ppm2,ppp_total~dens,covariates=list(dens=dens))
-y1<-predict(ppm1)
-plot(y1)
-y2<-predict(ppm2)
-plot(y2)
-y3<-predict(ppm3)
-plot(y3)
-x1<-simulate(ppm1,nsim = 10)
-plot(density(x1))
-x2<-simulate(ppm2,nsim = 10)
-plot(density(x2))
-x3<-simulate(ppm3,nsim = 10)
-plot(density(x3))
+plot.new()
+par(mfrow=c(1,3))
+rand_num<-sample(1:100,36,replace=T)
+win_list<-list()
+for (i  in 0:5 ) {
+  for (j in 0:5){
+    win<-owin(xrange=c(i,i+1),yrange=c(j,j+1))
+    win_list<-c(win_list,list(win))
+  }
+}
+ppp_list<-lapply(1:36,function(i) rpoint(rand_num[[i]],win=win_list[[i]]))
+ppp_list<-as.solist(ppp_list)
+ppp_total<-superimpose(ppp_list,W=tess(tiles=win_list))
+x<-pixellate(ppp_total,eps=1)
+plot(x)
 
-anova(ppm1,ppm3)
-M<-quadrat.test(ppm2,nx=2,ny=2)
-plot(M)
-k<-Kest(ppp_total)
-plot(k)
+#plot(ppp_total)
+dens1<-density(ppp_total,eps=.01)
+summary(dens1)
+dens1[ppp_total]
+plot(dens1)
+plot(quadratcount(ppp_total,nx=6,ny=6))
+intens<-intensity(quadratcount(ppp_total,nx=6,ny=6),image=T)
+plot(intens)
 
 
-windows<-list(win1,win2,win3,win4)
-tess1<-tess(tiles=windows)
-plot(tess1)
-plot(win1)
-plot(win2)
 
 ####
 #### 10% SAMPLE ####
