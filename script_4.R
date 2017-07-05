@@ -48,92 +48,7 @@ sle<-readOGR(dsn="shapefiles/SLE_shp", layer="SLE_adm0",stringsAsFactors=FALSE, 
 #stp<-readOGR(dsn="shapefiles/STP_shp", layer="STP_adm0",stringsAsFactors=FALSE, verbose=FALSE)
 tgo<-readOGR(dsn="shapefiles/TGO_shp", layer="TGO_adm0",stringsAsFactors=FALSE, verbose=FALSE)
 
-waf<-readOGR(dsn="shapefiles/WAF_shp", layer="wascal_borders",stringsAsFactors=FALSE, verbose=FALSE)
-waf2<-readOGR(dsn="shapefiles/WAF_shp", layer="wascal_countries",stringsAsFactors=FALSE, verbose=FALSE)
-quartz()
-plot(waf2)
-plot(waf)
-
-
-
-shp_list<-list(ben,bfa,civ,cpv,gha,gin,gmb,gnb,lbr,mli,mrt,ner,nga,sen,sle,tgo)
-x<-sapply(1:length(shp_list), function(i) length(shp_list[[i]]@polygons[[1]]@Polygons))
-#shp_list<-lapply(1:length(shp_list), function(i) gSimplify(shp_list[[i]],tol=.005))
-shp_list<-lapply(1:length(shp_list),function(i) {SpatialPolygons(shp_list[[i]]@polygons)})
-waf<-union(shp_list[[1]],shp_list[[2]])
-for (i in 3:length(shp_list)){
-  waf<-union(waf,shp_list[[i]])
-}
-
-y<-sapply(waf@polygons, function(i) length(i@Polygons))
-
-area <- lapply(waf@polygons, function(x) sapply(x@Polygons, function(y) y@area))
-quantile(unlist(area))
-mainPolys <- lapply(area, function(x) which(x > 0.001))
-
-waf@plotOrder <- 1:length(waf@polygons)
-mainPolys[[2]][1]
-for(i in 1:length(mainPolys)){
-  waf@polygons[[i]]@Polygons <- waf@polygons[[i]]@Polygons[mainPolys[[i]]]
-  waf@polygons[[i]]@plotOrder <- 1:length(waf@polygons[[i]]@Polygons)
-}
-
-waf@proj4string<-CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0" )
-save(waf,file = "WAF_adm0.RData")
-load("WAF_adm0.RData")
-
-install.packages("shapefiles")
-library(shapefiles)
-
-for(i in 1:length(waf@polygons)){
-  for(j in 1:length(waf@polygons[[i]]@Polygons)){
-    temp <- as.data.frame(waf@polygons[[i]]@Polygons[[j]]@coords)
-    names(temp) <- c("x", "y")
-    temp2 <- dp(temp, 0.01)
-    waf@polygons[[i]]@Polygons[[j]]@coords <- as.matrix(cbind(temp2$x, temp2$y))
-  }
-}
-
-waf2<-waf
-quartz()
-plot(waf2)
-
-install.packages("rmapshaper")
-library(rmapshaper)
-ben2<-rmapshaper::ms_simplify(ben)
-
-waf<-sapply(waf@polygons, function(i) gSimplify(i@Polygons,tol=.005))
-waf<-ms_simplify(waf)
-waf@bbox
-waf@plotOrder
-quartz()
-plot(waf)
-
-ben@plotOrder
-
-poly_list<-lapply(1:length(shp_list),function(i) {shp_list[[i]][1]@polygons[[1]]})
-for (i in 1:length(poly_list)){
-  poly_list[[i]]@ID <- as.character(i)
-}
-
-shp<-SpatialPolygons(poly_list)
-shp_f<-fortify(shp)
-plot(shp)
-ggplot()+geom_map(data=shp_f,map=shp_f,aes(x=long,y=lat,map_id=id))
-
-
-shp_list[[3]][1]@polygons[[1]]
-
-z<-poly_list2[[1]]
-z<-SpatialPolygons(z)
-x<-shp_list[[2]][1]@polygons[1]
-x<-z[[1]]
-b<-bfa[1]
-class(z)
-waf<-union(ben,bfa)
-waf<-union(waf,sle)
-waf<-union(waf,nga)
-plot(waf)
+load("shapefiles/WAF_shp/WAF_adm0.RData")
 
 
 lbr2<-readOGR(dsn = "shapefiles/tyler_LBR",layer="liberia_revised",stringsAsFactors = FALSE,verbose=FALSE)
@@ -200,6 +115,52 @@ load("points_df_10percent.RData")
 ## load city points data ##
 load("city_points.RData")
 
+####
+
+# CREATE WEST AFRICA SHAPEFILE -----------------------------------
+
+shp_list<-list(ben,bfa,civ,cpv,gha,gin,gmb,gnb,lbr,mli,mrt,ner,nga,sen,sle,tgo)
+#shp_list<-lapply(1:length(shp_list), function(i) gSimplify(shp_list[[i]],tol=.005))
+shp_list<-lapply(1:length(shp_list),function(i) {SpatialPolygons(shp_list[[i]]@polygons)})
+
+waf<-union(shp_list[[1]],shp_list[[2]])
+for (i in 3:length(shp_list)){
+  waf<-union(waf,shp_list[[i]])
+}
+
+area <- lapply(waf@polygons, function(x) sapply(x@Polygons, function(y) y@area))
+mainPolys <- lapply(area, function(x) which(x > 0.001))
+waf@plotOrder <- 1:length(waf@polygons)
+
+for(i in 1:length(mainPolys)){
+  waf@polygons[[i]]@Polygons <- waf@polygons[[i]]@Polygons[mainPolys[[i]]]
+  waf@polygons[[i]]@plotOrder <- 1:length(waf@polygons[[i]]@Polygons)
+}
+
+waf@proj4string<-CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0" )
+
+
+for(i in 1:length(waf@polygons)){
+  for(j in 1:length(waf@polygons[[i]]@Polygons)){
+    temp <- as.data.frame(waf@polygons[[i]]@Polygons[[j]]@coords)
+    names(temp) <- c("x", "y")
+    temp2 <- dp(temp, 0.01)
+    waf@polygons[[i]]@Polygons[[j]]@coords <- as.matrix(cbind(temp2$x, temp2$y))
+  }
+}
+
+
+iso<-c("CPV","CIV","NER","NGA","GMB","GNB","MRT","MLI","SEN","LBR","GIN","SLE","GHA","BFA","BEN","TGO")
+names<-c("Cape Verde","Ivory Coast","Niger","Nigeria","Gambia","Guinea Bissau","Mauritania","Mali","Senegal","Liberia","Guinea","Sierra Leone","Ghana","Burkina Faso","Benin","Togo")
+id<-seq(1,16)
+df<-data.frame(iso,names,id)
+df[,1]<-as.character(df[,1])
+df[,2]<-as.character(df[,2])
+waf<-SpatialPolygonsDataFrame(waf,df)
+
+plot(waf)
+
+save(waf,file = "WAF_adm0.RData")
 ####
 # TEST WITH WOLRDPOP DATA ----------------------------------------
 test<-raster("~/Documents/wm/year1/monroe_project/LBR-POP/LBR10adjv3.tif")
@@ -552,7 +513,7 @@ sum(high_low_gb$pop[which(high_low_gb$score >= 66)],na.rm = T)
 ###
 #### SAMPLE JORQUELLEH DIST ####
 
-jorquelleh<-clan[which(clan@data$FIRST_DNAM=="Jorquelleh"),]
+jorquelleh<-lbr_clan[which(lbr_clan@data$FIRST_DNAM=="Jorquelleh"),]
 plot(jorquelleh)
 jorquelleh@data$ID<-rep(1,5)
 jorquelleh  <- unionSpatialPolygons(jorquelleh,jorquelleh@data$ID)
