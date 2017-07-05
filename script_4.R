@@ -1,6 +1,5 @@
 rm(list=ls())
 setwd("~/GitHub/Liberia")
-quartz()
 
 #install.packages("SpaDES",dependencies = T)
 library(rgdal)
@@ -22,46 +21,159 @@ library(scales)
 library(plot3Drgl)
 library(akima)
 library(SpaDES)
-
+library(rmapshaper)
 
 #### DATA ####
 
 
 ## Import Shapefiles ##
-country<-readOGR(dsn="shapefiles", layer="liberia_revised",stringsAsFactors=FALSE, verbose=FALSE)
-cnty<-readOGR(dsn = "shapefiles",layer="counties",stringsAsFactors = FALSE,verbose=FALSE)
-dist<-readOGR(dsn="shapefiles",layer="districts", stringsAsFactors = FALSE,verbose = FALSE)
-clan<-readOGR(dsn="shapefiles",layer="clans", stringsAsFactors = FALSE,verbose = FALSE)
 
-country<-spTransform(country, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-cnty<-spTransform(cnty, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-dist<-spTransform(dist, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
-clan<-spTransform(clan, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+# countries
+ben<-readOGR(dsn="shapefiles/BEN_shp", layer="BEN_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+bfa<-readOGR(dsn="shapefiles/BFA_shp", layer="BFA_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+civ<-readOGR(dsn="shapefiles/CIV_shp", layer="CIV_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+cpv<-readOGR(dsn="shapefiles/CPV_shp", layer="CPV_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+gha<-readOGR(dsn="shapefiles/GHA_shp", layer="GHA_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+gin<-readOGR(dsn="shapefiles/GIN_shp", layer="GIN_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+gmb<-readOGR(dsn="shapefiles/GMB_shp", layer="GMB_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+gnb<-readOGR(dsn="shapefiles/GNB_shp", layer="GNB_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+lbr<-readOGR(dsn="shapefiles/LBR_shp", layer="LBR_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+mli<-readOGR(dsn="shapefiles/MLI_shp", layer="MLI_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+mrt<-readOGR(dsn="shapefiles/MRT_shp", layer="MRT_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+ner<-readOGR(dsn="shapefiles/NER_shp", layer="NER_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+nga<-readOGR(dsn="shapefiles/NGA_shp", layer="NGA_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+sen<-readOGR(dsn="shapefiles/SEN_shp", layer="SEN_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+#shn<-readOGR(dsn="shapefiles/SHN_shp", layer="SHN_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+sle<-readOGR(dsn="shapefiles/SLE_shp", layer="SLE_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+#stp<-readOGR(dsn="shapefiles/STP_shp", layer="STP_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+tgo<-readOGR(dsn="shapefiles/TGO_shp", layer="TGO_adm0",stringsAsFactors=FALSE, verbose=FALSE)
+
+waf<-readOGR(dsn="shapefiles/WAF_shp", layer="wascal_borders",stringsAsFactors=FALSE, verbose=FALSE)
+waf2<-readOGR(dsn="shapefiles/WAF_shp", layer="wascal_countries",stringsAsFactors=FALSE, verbose=FALSE)
+quartz()
+plot(waf2)
+plot(waf)
 
 
-### Fortify shapefiles ###
-country_f<-fortify(country)
-cnty_f<-fortify(cnty)
-dist_f<-fortify(dist)
-clan_f<-fortify(clan)
 
+shp_list<-list(ben,bfa,civ,cpv,gha,gin,gmb,gnb,lbr,mli,mrt,ner,nga,sen,sle,tgo)
+x<-sapply(1:length(shp_list), function(i) length(shp_list[[i]]@polygons[[1]]@Polygons))
+#shp_list<-lapply(1:length(shp_list), function(i) gSimplify(shp_list[[i]],tol=.005))
+shp_list<-lapply(1:length(shp_list),function(i) {SpatialPolygons(shp_list[[i]]@polygons)})
+waf<-union(shp_list[[1]],shp_list[[2]])
+for (i in 3:length(shp_list)){
+  waf<-union(waf,shp_list[[i]])
+}
+
+y<-sapply(waf@polygons, function(i) length(i@Polygons))
+
+area <- lapply(waf@polygons, function(x) sapply(x@Polygons, function(y) y@area))
+quantile(unlist(area))
+mainPolys <- lapply(area, function(x) which(x > 0.001))
+
+waf@plotOrder <- 1:length(waf@polygons)
+mainPolys[[2]][1]
+for(i in 1:length(mainPolys)){
+  waf@polygons[[i]]@Polygons <- waf@polygons[[i]]@Polygons[mainPolys[[i]]]
+  waf@polygons[[i]]@plotOrder <- 1:length(waf@polygons[[i]]@Polygons)
+}
+
+waf@proj4string<-CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0" )
+save(waf,file = "WAF_adm0.RData")
+load("WAF_adm0.RData")
+
+install.packages("shapefiles")
+library(shapefiles)
+
+for(i in 1:length(waf@polygons)){
+  for(j in 1:length(waf@polygons[[i]]@Polygons)){
+    temp <- as.data.frame(waf@polygons[[i]]@Polygons[[j]]@coords)
+    names(temp) <- c("x", "y")
+    temp2 <- dp(temp, 0.01)
+    waf@polygons[[i]]@Polygons[[j]]@coords <- as.matrix(cbind(temp2$x, temp2$y))
+  }
+}
+
+waf2<-waf
+quartz()
+plot(waf2)
+
+install.packages("rmapshaper")
+library(rmapshaper)
+ben2<-rmapshaper::ms_simplify(ben)
+
+waf<-sapply(waf@polygons, function(i) gSimplify(i@Polygons,tol=.005))
+waf<-ms_simplify(waf)
+waf@bbox
+waf@plotOrder
+quartz()
+plot(waf)
+
+ben@plotOrder
+
+poly_list<-lapply(1:length(shp_list),function(i) {shp_list[[i]][1]@polygons[[1]]})
+for (i in 1:length(poly_list)){
+  poly_list[[i]]@ID <- as.character(i)
+}
+
+shp<-SpatialPolygons(poly_list)
+shp_f<-fortify(shp)
+plot(shp)
+ggplot()+geom_map(data=shp_f,map=shp_f,aes(x=long,y=lat,map_id=id))
+
+
+shp_list[[3]][1]@polygons[[1]]
+
+z<-poly_list2[[1]]
+z<-SpatialPolygons(z)
+x<-shp_list[[2]][1]@polygons[1]
+x<-z[[1]]
+b<-bfa[1]
+class(z)
+waf<-union(ben,bfa)
+waf<-union(waf,sle)
+waf<-union(waf,nga)
+plot(waf)
+
+
+lbr2<-readOGR(dsn = "shapefiles/tyler_LBR",layer="liberia_revised",stringsAsFactors = FALSE,verbose=FALSE)
+lbr_cnty<-readOGR(dsn = "shapefiles/LBR_shp",layer="counties",stringsAsFactors = FALSE,verbose=FALSE)
+lbr_dist<-readOGR(dsn="shapefiles/LBR_shp",layer="districts", stringsAsFactors = FALSE,verbose = FALSE)
+lbr_clan<-readOGR(dsn="shapefiles/tyler_LBR",layer="clans", stringsAsFactors = FALSE,verbose = FALSE)
+
+lbr2<-spTransform(lbr2, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+lbr_cnty<-spTransform(lbr_cnty, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+lbr_dist<-spTransform(lbr_dist, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+lbr_clan<-spTransform(lbr_clan, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
+
+lbr_f<-fortify(lbr)
+lbr2_f<-fortify(lbr2)
+lbr_cnty_f<-fortify(lbr_cnty)
+lbr_dist_f<-fortify(lbr_dist)
+lbr_clan_f<-fortify(lbr_clan)
+
+quartz()
+par(mfrow=c(1,2))
+plot(lbr)
+plot(lbr2)
+# 
 
 ## Import GPW4 data ##
 gpw4_2000<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2000.tif")
-gpw4_2000<-crop(gpw4_2000,extent(country))
-#gpw4_2000<-mask(gpw4_2000,country)
+gpw4_2000<-crop(gpw4_2000,extent(lbr))
+#gpw4_2000<-mask(gpw4_2000,lbr)
 
 gpw4_2005<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2005.tif")
-gpw4_2005<-crop(gpw4_2005,extent(country))
-#gpw4_2005<-mask(gpw4_2005,country)
+gpw4_2005<-crop(gpw4_2005,extent(lbr))
+#gpw4_2005<-mask(gpw4_2005,lbr)
 
 gpw4_2010<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2010.tif")
-gpw4_2010<-crop(gpw4_2010,extent(country))
-#gpw4_2010<-mask(gpw4_2010,country)
+gpw4_2010<-crop(gpw4_2010,extent(lbr))
+gpw4_2010<-mask(gpw4_2010,lbr)
 
 gpw4_2015<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2015.tif")
-gpw4_2015<-crop(gpw4_2015,extent(country))
-#gpw4_2015<-mask(gpw4_2015,country)
+gpw4_2015<-crop(gpw4_2015,extent(lbr))
+#gpw4_2015<-mask(gpw4_2015,lbr)
 
 
 ## Calculate growth rate ##
@@ -89,62 +201,234 @@ load("points_df_10percent.RData")
 load("city_points.RData")
 
 ####
+# TEST WITH WOLRDPOP DATA ----------------------------------------
+test<-raster("~/Documents/wm/year1/monroe_project/LBR-POP/LBR10adjv3.tif")
+quartz()
+test2<-test>0
+x<-getValues(test)
+plot(log(test))
+gpw4_2010
 
-#### HIGH LOW METHOD CLUSTERING ####
+gplot(test)+geom_tile(aes(fill=value))+geom_map(data=lbr2_f,map=lbr2_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)
+
+
+proj4string(test)
+proj4string(lbr)
+
+y<-cellsFromExtent(test,lbr)
+unique(x)
+na.rm(x)
+
+
+
+high_low_lbr2<-data.frame(cell=cellsFromExtent(test,lbr2), pop=getValues(test))
+high_low_lbr2$long<-xFromCell(test,high_low_lbr2$cell)
+high_low_lbr2$lat<-yFromCell(test,high_low_lbr2$cell)
+high_low_lbr2$pop2<-high_low_lbr2$pop
+high_low_lbr2$pop2[is.na(high_low_lbr2$pop2)]<-0
+
+
+# Calculate Using Means
+adj<-sapply(1:24988401, function(i) {adj(test,high_low_lbr2$cell[i],directions=4,pairs=F,include=F)})
+adj_mean<-lapply(1:24988401, function(i) {mean(sapply(1:length(adj[[i]]), function(j) {high_low_lbr2$pop[adj[[i]][j]]}),na.rm=T)})
+
+high_low_lbr2$adj<-adj
+high_low_lbr2$adj_mean<-adj_mean
+
+mean<-mean(high_low_lbr2$pop,na.rm=T)
+
+quart_1<-mean(high_low_lbr2$pop[which(high_low_lbr2$pop <= mean)],na.rm=T)
+quart_3<-mean(high_low_lbr2$pop[which(high_low_lbr2$pop >= mean)],na.rm=T)
+
+oct_1<-mean(high_low_lbr2$pop[which(high_low_lbr2$pop <= quart_1)],na.rm=T)
+oct_2<-mean(high_low_lbr2$pop[which(high_low_lbr2$pop >= quart_1 & high_low_lbr2$pop <= mean)],na.rm=T)
+oct_3<-mean(high_low_lbr2$pop[which(high_low_lbr2$pop >= mean & high_low_lbr2$pop <= quart_3)],na.rm=T)
+oct_4<-mean(high_low_lbr2$pop[which(high_low_lbr2$pop >= quart_3)],na.rm=T)
+
+high_low_lbr2$cellscore<-ifelse(high_low_lbr2$pop >= oct_4, 8,
+                                ifelse(high_low_lbr2$pop >= quart_3, 7,
+                                       ifelse(high_low_lbr2$pop >= oct_3, 6,
+                                              ifelse(high_low_lbr2$pop >= mean, 5,
+                                                     ifelse(high_low_lbr2$pop >= oct_2, 4,
+                                                            ifelse(high_low_lbr2$pop >= quart_1, 3,
+                                                                   ifelse(high_low_lbr2$pop >= oct_1, 2,
+                                                                          ifelse(high_low_lbr2$pop < oct_1, 1, NA))))))))
+
+high_low_lbr2$adj_score<-ifelse(high_low_lbr2$adj_mean >= oct_4, 8,
+                                ifelse(high_low_lbr2$adj_mean >= quart_3, 7,
+                                       ifelse(high_low_lbr2$adj_mean >= oct_3, 6,
+                                              ifelse(high_low_lbr2$adj_mean >= mean, 5,
+                                                     ifelse(high_low_lbr2$adj_mean >= oct_2, 4,
+                                                            ifelse(high_low_lbr2$adj_mean >= quart_1, 3,
+                                                                   ifelse(high_low_lbr2$adj_mean >= oct_1, 2,
+                                                                          ifelse(high_low_lbr2$adj_mean < oct_1, 1, NA))))))))
+
+high_low_lbr2$score<-high_low_lbr2$cellscore * 10 + high_low_lbr2$adj_score
+
+save(high_low_lbr2,file = "high_low_lbr2.RData")
+
+###
+# NIGHT LIGHTS DATA ---------------------------------------
+
+quartz()
+lights<-raster("~/Downloads/F182010.v4/F182010.v4d_web.stable_lights.avg_vis.tif")
+lights2<-raster("~/Downloads/F182010.v4/F182010.v4d_web.cf_cvg.tif")
+lights3<-raster("~/Downloads/F182010.v4/F182010.v4d_web.avg_vis.tif")
+
+
+lbr_lights<-crop(lights,extent(lbr))
+plot(lbr_lights)
+lights0<-lbr_lights>0
+gplot(lights0)+geom_tile(aes(fill=factor(value)))+
+  geom_map(data=lbr_cnty_f,map=lbr_cnty_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)
+x<-getValues(lbr_lights)
+x<-x[which(x>0)]
+
+
+lbr_lights2<-crop(lights2,extent(lbr))
+plot(lbr_lights2)
+gplot(lbr_lights2)+geom_tile(aes(fill=value))+
+  geom_map(data=lbr_cnty_f,map=lbr_cnty_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)
+y<-getValues(lbr_lights2)
+y<-y[which(y>0)]
+
+
+lbr_lights3<-crop(lights3,extent(lbr))
+plot(lbr_lights3)
+gplot(lbr_lights3)+geom_tile(aes(fill=factor(value)))+
+  geom_map(data=lbr_cnty_f,map=lbr_cnty_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)
+z<-getValues(lbr_lights3)
+z<-z[which(z>0)]
+
+####
+
+# HIGH LOW CLUSTERING METHOD -------------------------------------
+
+
+# Data
 gpw4_2010<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2010.tif")
-gpw4_2010<-crop(gpw4_2010,extent(country))
-gpw4_2010<-mask(gpw4_2010,country)
+gpw4_2010<-crop(gpw4_2010,extent(lbr))
+gpw4_2010<-mask(gpw4_2010,lbr)
 
-high_low_lbr<-data.frame(cell=cellsFromExtent(gpw4_2010,country), pop=getValues(gpw4_2010))
+load("high_low.RData")
+load("high_low_lbr.RData")
+
+
+# Quick Plotting
+
+  # means
+  quartz()
+  ggplot()+geom_tile(data=high_low,aes(x=long,y=lat,fill=factor(score)),cex=.8)+
+    geom_map(data=lbr_dist_f,map=lbr_dist_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)
+  
+  quartz()
+  ggplot()+geom_tile(data=high_low_lbr,aes(x=long,y=lat,fill=score),cex=.8)+
+    geom_map(data=lbr_dist_f,map=lbr_dist_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)+
+    ggtitle("High Low with Means")
+  
+  quartz()
+  raster1<-rasterFromXYZ(high_low_lbr[,c(3,4,9)])
+  gplot(raster1)+geom_tile(aes(fill=factor(value)))  
+  
+  # medians
+  quartz()
+  ggplot()+geom_tile(data=high_low_lbr_med,aes(x=long,y=lat,fill=score),cex=.8)+
+    geom_map(data=lbr_dist_f,map=lbr_dist_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)+
+    ggtitle("High Low with Medians")
+
+
+# Test Writing Function
+x<-seq(0,100)
+y<-list(x)
+means<-vector()
+for (i in 1:2){
+  m<-sapply(1:length(y),function(j) mean(y[[j]]))
+  means<-c(means,m)
+  y<-sapply(1:length(m), function(h) {list(y[[h]][which((y[[h]]>=m[[h]]))], y[[h]][which((y[[h]]<=m[[h]]))])})
+}
+means<-sort(means)
+means<-c(min(x),means,max(x))
+means
+
+score<-sapply(1:length(x),function(i) {sapply(1:(length(means)-1),function(j) if (x[i]>means[j] & x[i]<=means[j+1]) {j})})
+x<-sapply(1:(length(means)-1),function(j) if (x[i]>means[j] & x[i]<=means[j+1]) {j})
+
+
+# Initialize Data Frame
+high_low_lbr<-data.frame(cell=cellsFromExtent(gpw4_2010,lbr), pop=getValues(gpw4_2010))
 high_low_lbr$long<-xFromCell(gpw4_2010,high_low_lbr$cell)
 high_low_lbr$lat<-yFromCell(gpw4_2010,high_low_lbr$cell)
 high_low_lbr$pop2<-high_low_lbr$pop
 high_low_lbr$pop2[is.na(high_low_lbr$pop2)]<-0
-mean<-mean(high_low_lbr$pop,na.rm=T)
 
-above_mean<-sapply(1:249984,function(i) {high_low_lbr$pop2[i] >= mean})
+
+# Calculate Using Means
 adj<-sapply(1:249984, function(i) {adj(gpw4_2010,high_low_lbr$cell[i],directions=4,pairs=F,include=F)})
 adj_mean<-lapply(1:249984, function(i) {mean(sapply(1:length(adj[[i]]), function(j) {high_low_lbr$pop[adj[[i]][j]]}),na.rm=T)})
 
-high_low_lbr$abv_mean<-above_mean
 high_low_lbr$adj<-adj
 high_low_lbr$adj_mean<-adj_mean
 
-quart_3<-mean(high_low_lbr$pop[which(high_low_lbr$abv_mean==T)],na.rm=T)
-quart_1<-mean(high_low_lbr$pop[which(high_low_lbr$abv_mean==F)],na.rm=T)
+mean<-mean(high_low_lbr$pop,na.rm=T)
 
-high_low_lbr$score<-ifelse(high_low_lbr$pop >= quart_3 & high_low_lbr$adj_mean >= quart_3, 44,
-                ifelse(high_low_lbr$pop >= quart_3 & high_low_lbr$adj_mean >= mean, 43,
-                ifelse(high_low_lbr$pop >= quart_3 & high_low_lbr$adj_mean >= quart_1, 42,
-                ifelse(high_low_lbr$pop >= quart_3 & high_low_lbr$adj_mean < quart_1, 41,
-                       
-                ifelse(high_low_lbr$pop < quart_3 & high_low_lbr$pop >= mean & high_low_lbr$adj_mean >= quart_3, 34,
-                ifelse(high_low_lbr$pop < quart_3 & high_low_lbr$pop >= mean & high_low_lbr$adj_mean < quart_3 & high_low_lbr$adj_mean >= mean, 33,
-                ifelse(high_low_lbr$pop < quart_3 & high_low_lbr$pop >= mean & high_low_lbr$adj_mean < mean & high_low_lbr$adj_mean >= quart_1, 32,
-                ifelse(high_low_lbr$pop < quart_3 & high_low_lbr$pop >= mean & high_low_lbr$adj_mean < quart_1, 31,
-                       
-                ifelse(high_low_lbr$pop < mean & high_low_lbr$pop >= quart_1 & high_low_lbr$adj_mean >= quart_3, 24,
-                ifelse(high_low_lbr$pop < mean & high_low_lbr$pop >= quart_1 & high_low_lbr$adj_mean < quart_3 & high_low_lbr$adj_mean >= mean, 23,
-                ifelse(high_low_lbr$pop < mean & high_low_lbr$pop >= quart_1 & high_low_lbr$adj_mean < mean & high_low_lbr$adj_mean >= quart_1, 22,
-                ifelse(high_low_lbr$pop < mean & high_low_lbr$pop >= quart_1 & high_low_lbr$adj_mean < quart_1, 21,
-                       
-                ifelse(high_low_lbr$pop < quart_1 & high_low_lbr$adj_mean > quart_3, 14,
-                ifelse(high_low_lbr$pop < quart_1 & high_low_lbr$adj_mean < quart_3 & high_low_lbr$adj_mean >= mean, 13,
-                ifelse(high_low_lbr$pop < quart_1 & high_low_lbr$adj_mean < mean & high_low_lbr$adj_mean >= quart_1, 12,
-                ifelse(high_low_lbr$pop < quart_1 & high_low_lbr$adj_mean < quart_1, 11,0)))))))))))))))) 
+quart_1<-mean(high_low_lbr$pop[which(high_low_lbr$pop <= mean)],na.rm=T)
+quart_3<-mean(high_low_lbr$pop[which(high_low_lbr$pop >= mean)],na.rm=T)
+
+oct_1<-mean(high_low_lbr$pop[which(high_low_lbr$pop <= quart_1)],na.rm=T)
+oct_2<-mean(high_low_lbr$pop[which(high_low_lbr$pop >= quart_1 & high_low_lbr$pop <= mean)],na.rm=T)
+oct_3<-mean(high_low_lbr$pop[which(high_low_lbr$pop >= mean & high_low_lbr$pop <= quart_3)],na.rm=T)
+oct_4<-mean(high_low_lbr$pop[which(high_low_lbr$pop >= quart_3)],na.rm=T)
+
+high_low_lbr$cellscore<-ifelse(high_low_lbr$pop >= oct_4, 8,
+                        ifelse(high_low_lbr$pop >= quart_3, 7,
+                        ifelse(high_low_lbr$pop >= oct_3, 6,
+                        ifelse(high_low_lbr$pop >= mean, 5,
+                        ifelse(high_low_lbr$pop >= oct_2, 4,
+                        ifelse(high_low_lbr$pop >= quart_1, 3,
+                        ifelse(high_low_lbr$pop >= oct_1, 2,
+                        ifelse(high_low_lbr$pop < oct_1, 1, NA))))))))
+
+high_low_lbr$adj_score<-ifelse(high_low_lbr$adj_mean >= oct_4, 8,
+                        ifelse(high_low_lbr$adj_mean >= quart_3, 7,
+                        ifelse(high_low_lbr$adj_mean >= oct_3, 6,
+                        ifelse(high_low_lbr$adj_mean >= mean, 5,
+                        ifelse(high_low_lbr$adj_mean >= oct_2, 4,
+                        ifelse(high_low_lbr$adj_mean >= quart_1, 3,
+                        ifelse(high_low_lbr$adj_mean >= oct_1, 2,
+                        ifelse(high_low_lbr$adj_mean < oct_1, 1, NA))))))))
+
+high_low_lbr$score<-high_low_lbr$cellscore * 10 + high_low_lbr$adj_score
 
 save(high_low_lbr,file = "high_low_lbr.RData")
 
-high_low_lbr_rast<-rasterize(x=data.frame(high_low_lbr$long,high_low_lbr$lat),y=gpw4_2010,field=high_low_lbr$score)
-good_good3<-left_join(good_good2,high_low_lbr,by=c(c("ct_long"="long"),c("ct_lat"="lat")))
 
-load("high_low_lbr.RData")
-quartz()
-ggplot()+geom_map(data=good_good3,map=good_good3,aes(x=long,y=lat,map_id=id,fill=factor(score)))+
-  geom_map(data=dist_f,map=dist_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)
-ggplot()+geom_point(data=high_low,mapping=aes(x=long,y=lat,col=factor(score)),shape=15,cex=.8)+
-  geom_map(data=dist_f,map=dist_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)
+# Calculate Using Medians
+high_low_lbr_med<-high_low_lbr
 
+quant<-quantile(high_low_lbr_med$pop,probs=seq(0,1,.125) ,na.rm=T)
+quant
+
+high_low_lbr_med$cellscore<-ifelse(high_low_lbr_med$pop >= quant[[8]], 8, 
+                        ifelse(high_low_lbr_med$pop >= quant[[7]], 7,
+                        ifelse(high_low_lbr_med$pop >= quant[[6]], 6,
+                        ifelse(high_low_lbr_med$pop >= quant[[5]], 5,
+                        ifelse(high_low_lbr_med$pop >= quant[[4]], 4,
+                        ifelse(high_low_lbr_med$pop >= quant[[3]], 3,
+                        ifelse(high_low_lbr_med$pop >= quant[[2]], 2,
+                        ifelse(high_low_lbr_med$pop >= quant[[1]], 1, NA))))))))
+
+high_low_lbr_med$adj_score<-ifelse(high_low_lbr_med$adj_mean >= quant[[8]], 8, 
+                        ifelse(high_low_lbr_med$adj_mean >= quant[[7]], 7,
+                        ifelse(high_low_lbr_med$adj_mean >= quant[[6]], 6,
+                        ifelse(high_low_lbr_med$adj_mean >= quant[[5]], 5,
+                        ifelse(high_low_lbr_med$adj_mean >= quant[[4]], 4,
+                        ifelse(high_low_lbr_med$adj_mean >= quant[[3]], 3,
+                        ifelse(high_low_lbr_med$adj_mean >= quant[[2]], 2,
+                        ifelse(high_low_lbr_med$adj_mean >= quant[[1]], 1, NA))))))))
+
+high_low_lbr_med$score<-high_low_lbr_med$cellscore * 10 + high_low_lbr_med$adj_score
+
+save(high_low_lbr_med,file="high_low_lbr_med.RData")
 ####
 
 #### SAMPLE GABARGNA ####
@@ -213,6 +497,59 @@ quadratcount(ppp_gabargna,nx=2,ny=2)
 intens_gabargna<-intensity.ppp(ppp_gabargna)
 smooth_gabargna<-smooth(ppp_gabargna)
 
+
+### Gbargna High Low ###
+gbargna<-crop(gpw4_2010,extent(c(-9.75,-9.15,6.48,7.25)))
+high_low_gb<-data.frame(cell=cellsFromExtent(gbargna,extent(c(-9.75,-9.15,6.48,7.25))), pop=getValues(gbargna))
+high_low_gb$long<-xFromCell(gbargna,high_low_gb$cell)
+high_low_gb$lat<-yFromCell(gbargna,high_low_gb$cell)
+high_low_gb$pop2<-high_low_gb$pop
+high_low_gb$pop2[is.na(high_low_gb$pop2)]<-0
+mean<-mean(high_low_gb$pop,na.rm=T)
+
+#above_mean<-sapply(1:249984,function(i) {high_low_gb$pop2[i] >= mean})
+adj<-sapply(1:6624, function(i) {adj(gbargna,high_low_gb$cell[i],directions=4,pairs=F,include=F)})
+adj_mean<-lapply(1:6624, function(i) {mean(sapply(1:length(adj[[i]]), function(j) {high_low_gb$pop[adj[[i]][j]]}),na.rm=T)})
+
+#high_low_gb$abv_mean<-above_mean
+high_low_gb$adj<-adj
+high_low_gb$adj_mean<-adj_mean
+
+quart_1<-mean(high_low_gb$pop[which(high_low_gb$pop <= mean)],na.rm=T)
+quart_3<-mean(high_low_gb$pop[which(high_low_gb$pop >= mean)],na.rm=T)
+
+oct_1<-mean(high_low_gb$pop[which(high_low_gb$pop <= quart_1)],na.rm=T)
+oct_2<-mean(high_low_gb$pop[which(high_low_gb$pop >= quart_1 & high_low_gb$pop <= mean)],na.rm=T)
+oct_3<-mean(high_low_gb$pop[which(high_low_gb$pop >= mean & high_low_gb$pop <= quart_3)],na.rm=T)
+oct_4<-mean(high_low_gb$pop[which(high_low_gb$pop >= quart_3)],na.rm=T)
+
+high_low_gb$cellscore<-ifelse(high_low_gb$pop >= oct_4, 8,
+                               ifelse(high_low_gb$pop >= quart_3, 7,
+                                      ifelse(high_low_gb$pop >= oct_3, 6,
+                                             ifelse(high_low_gb$pop >= mean, 5,
+                                                    ifelse(high_low_gb$pop >= oct_2, 4,
+                                                           ifelse(high_low_gb$pop >= quart_1, 3,
+                                                                  ifelse(high_low_gb$pop >= oct_1, 2,
+                                                                         ifelse(high_low_gb$pop < oct_1, 1, NA))))))))
+
+high_low_gb$adj_score<-ifelse(high_low_gb$adj_mean >= oct_4, 8,
+                               ifelse(high_low_gb$adj_mean >= quart_3, 7,
+                                      ifelse(high_low_gb$adj_mean >= oct_3, 6,
+                                             ifelse(high_low_gb$adj_mean >= mean, 5,
+                                                    ifelse(high_low_gb$adj_mean >= oct_2, 4,
+                                                           ifelse(high_low_gb$adj_mean >= quart_1, 3,
+                                                                  ifelse(high_low_gb$adj_mean >= oct_1, 2,
+                                                                         ifelse(high_low_gb$adj_mean < oct_1, 1, NA))))))))
+
+high_low_gb$score<-high_low_gb$cellscore * 10 + high_low_gb$adj_score
+
+ggplot()+geom_tile(data=high_low_gb,aes(x=long,y=lat,fill=factor(score)),cex=.8)+
+  #geom_map(data=lbr_dist_f,map=lbr_dist_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)+
+  ggtitle("High Low with Means")
+
+sum(high_low_gb$pop[which(high_low_gb$score >= 66)],na.rm = T)
+
+###
 #### SAMPLE JORQUELLEH DIST ####
 
 jorquelleh<-clan[which(clan@data$FIRST_DNAM=="Jorquelleh"),]
@@ -441,14 +778,17 @@ for (i in 1:112830){
 save(points_df_10percent,file="points_df_10percent.RData")
 load("ppp_points_df.RData")
 
-
-ppp_10percent<-ppp(m_final[,1],m_final[,2],window=win)
+win<-as(lbr,"owin")
+ppp_10percent<-ppp(points_df_10percent[,1],points_df_10percent[,2],window=win)
 summary(ppp_10percent)
 plot(ppp_10percent,chars=".")
+
+plot(pixellate(ppp_10percent))
 
 dens_10percent<-density(ppp_10percent,eps=.008333)
 summary(dens_10percent)
 plot(dens_10percent)
+contour(dens_10percent)
 
 ppm_10percent<-ppm(ppp_10percent,~density,covariates = list(density=dens_10percent))
 sim_10percent<-simulate(ppm_10percent,nsim = 10)
