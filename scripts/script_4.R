@@ -23,6 +23,8 @@ library(akima)
 library(SpaDES)
 library(rmapshaper)
 
+source("~/Documents/R/functions.R")
+
 #### DATA ####
 
 
@@ -52,8 +54,8 @@ load("shapefiles/WAF_shp/WAF_adm0.RData")
 
 
 lbr2<-readOGR(dsn = "shapefiles/tyler_LBR",layer="liberia_revised",stringsAsFactors = FALSE,verbose=FALSE)
-lbr_cnty<-readOGR(dsn = "shapefiles/LBR_shp",layer="counties",stringsAsFactors = FALSE,verbose=FALSE)
-lbr_dist<-readOGR(dsn="shapefiles/LBR_shp",layer="districts", stringsAsFactors = FALSE,verbose = FALSE)
+lbr_cnty<-readOGR(dsn = "shapefiles/tyler_LBR",layer="counties",stringsAsFactors = FALSE,verbose=FALSE)
+lbr_dist<-readOGR(dsn="shapefiles/tyler_LBR",layer="districts", stringsAsFactors = FALSE,verbose = FALSE)
 lbr_clan<-readOGR(dsn="shapefiles/tyler_LBR",layer="clans", stringsAsFactors = FALSE,verbose = FALSE)
 
 lbr2<-spTransform(lbr2, CRS("+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"))
@@ -117,6 +119,7 @@ load("city_points.RData")
 
 ####
 
+
 # CREATE WEST AFRICA SHAPEFILE -----------------------------------
 
 shp_list<-list(ben,bfa,civ,cpv,gha,gin,gmb,gnb,lbr,mli,mrt,ner,nga,sen,sle,tgo)
@@ -163,14 +166,435 @@ plot(waf)
 save(waf,file = "WAF_adm0.RData")
 ####
 # TEST WITH WOLRDPOP DATA ----------------------------------------
-test<-raster("~/Documents/wm/year1/monroe_project/LBR-POP/LBR10adjv3.tif")
+
+quant<-quantile(getValues(wp_lbr),probs = seq(0, 1, .015625),na.rm=T)
+quant
+
+
 quartz()
-test2<-test>0
-x<-getValues(test)
-plot(log(test))
+wp_lbr<-raster("~/Documents/wm/year1/monroe_project/LBR-POP/LBR10adjv3.tif")
+wp_lbr_region<-crop(wp_lbr,c(-9,-8.6,5.6,6))
+sum(wp_lbr_region@data@values)
+region_shp<-rasterToPolygons(wp_lbr_region)
+region_f<-fortify(region_shp)
+plot(wp_lbr2)
+
+blueblue<-colorRampPalette(brewer.pal(9,"Blues"))(250)
+
+bain<-lbr_clan[which(lbr_clan@data$CLNAME=="Bain"),]
+plot(bain)
+wp_bain<-crop(wp_lbr,bain)
+wp_bain<-mask(wp_bain, bain)
+pop<-sum(wp_bain@data@values,na.rm = T)
+wp_bain_im <- as.im(wp_bain)
+win<- as(bain,"owin")
+
+floor(cellStats(wp_bain,'sum'))
+
+# Clustering Funnction -----
+contourclust<-function(points,){
+  
+}
+#####
+
+p <- rpoint(pop, f=wp_bain_im,win)
+p2<-rpoint(pop, f=wp_bain_im)
+plot(wp_bain_im)
+x<-contour(wp_bain_im,add=T)
+Dsg <- as(wp_bain_im, "SpatialGridDataFrame")  # convert to spatial grid class
+Dim <- as.image.SpatialGridDataFrame(Dsg)  # convert again to an image
+Dcl <- contourLines(Dim, nlevels = 100)  # create contour object - change 8 for more/fewer levels
+SLDF <- ContourLines2SLDF(Dcl) # convert to SpatialLinesDataFrame
+plot(SLDF, col = terrain.colors(100))
+as(SpatialPoints(SLDF), "ppp")
+xxx <- SLDF[-c(1,3,4), ]
+class(xxx@lines[[1]])
+class(xxx)
+Polyclust <- gPolygonize(xxx)
+plot(Polyclust)
+gas <- gArea(Polyclust, byid = T)
+Polyclust <- SpatialPolygonsDataFrame(Polyclust, data = data.frame(gas), match.ID = F)
+plot(Polyclust)
+# Workaround 
+pxy <- cbind(p$x,p$y)
+pxy <- as.data.frame(pxy)
+
+pxy$observation <- 1:nrow(pxy) 
+pxy$observation <- as.data.frame(pxy$observation)
+
+dfxy <- as.data.frame(cbind(pxy$V1,pxy$V2))
+
+chocho <- SpatialPointsDataFrame(dfxy,pxy$observation)
+cAg <- aggregate(chocho, by = Polyclust, FUN = length)
+
+
+#Add cex= to change point size 
+plot(p, main = "Pixel Image with Function based on Density of Raster Map",cex=.03)
+rp<-raster(as.im(p))
+open3d()
+plot3D(rp, col = blueblue)
+
+plot(p2, main = "Pixel Image with Function based on Density of Raster Map",cex=.03)
+rp2<-raster(as.im(p2))
+open3d()
+plot3D(rp2, col = blueblue)
+
+
+diggle<-bw.diggle(p)
+plot(diggle)
+ppl<-bw.ppl(p)
+scott<-bw.scott(p)
+frac<-bw.frac(p)
+#pcf<-bw.pcf(p)
+stoyan<-bw.stoyan(p)
+
+quartz()
+rho<-rhohat(p,wp_bain_im)
+plot(rho)
+
+quartz()
+par(mfrow=c(2,3))
+dens<-plot(density(p),main="default")
+dens_diggle<-plot(density(p,sigma=diggle),main="diggle")
+dens_ppl<-plot(density(p,sigma=ppl),main="ppl")
+dens_scott<-plot(density(p,sigma=scott),main="scott")
+dens_frac<-plot(density(p,sigma=frac),main="frac")
+dens_stoyan<-plot(density(p,sigma=stoyan),main="stoyan")
+
+
+## GPW4 test
+gpw4_2010<-crop(gpw4_2010,waf)
+gpw4_2010<-mask(gpw4_2010,waf)
+quartz()
+plot(gpw4_2010)
+gpw4_2010@data@values
+pop<-sum(gpw4_2010@data@values,na.rm = T)
+gpw4_2010_im<-as.im(gpw4_2010)
+win<-as(waf,"owin")
+
+
+p <- rpoint(pop/1000, f=gpw4_2010_im,win)
+p2<-rpoint(pop, f=gpw4_2010_im)
+plot(gpw4_2010_im)
+
+#Add cex= to change point size 
+plot(p, main = "Pixel Image with Function based on Density of Raster Map",cex=.03)
+rp<-raster(as.im(p))
+p_im<-as.im(p)
+open3d()
+plot3D(rp, col = blueblue)
+
+sig<-bw.diggle(p)
+scott<-bw.scott(p)
+
+# Lovelace: http://robinlovelace.net/r/2014/03/21/clustering-points-R.html
+# P=9956 persons plot from code above in world pop
+Dens <- density(p, sigma=sig)  # create density object
+class(Dens)  
+plot(Dens)
+
+con <- contour(Dens, nlevels=100) # plot as contours - this is where we're heading
+Dsg <- as(Dens, "SpatialGridDataFrame")  # convert to spatial grid class
+Dim <- as.image.SpatialGridDataFrame(Dsg)  # convert again to an image
+Dcl <- contourLines(Dim, nlevels = 100)  # create contour object - change 8 for more/fewer levels
+SLDF <- ContourLines2SLDF(Dcl) # convert to SpatialLinesDataFrame
+plot(SLDF, col = terrain.colors(100))
+as(SpatialPoints(SLDF), "ppp")
+xxx <- SLDF[-c(1,3,4), ]
+class(xxx@lines[[1]])
+class(xxx)
+Polyclust <- gPolygonize(xxx)
+plot(Polyclust)
+gas <- gArea(Polyclust, byid = T)
+Polyclust <- SpatialPolygonsDataFrame(Polyclust, data = data.frame(gas), match.ID = F)
+plot(Polyclust)
+# Workaround 
+pxy <- cbind(p$x,p$y)
+pxy <- as.data.frame(pxy)
+
+pxy$observation <- 1:nrow(pxy) 
+pxy$observation <- as.data.frame(pxy$observation)
+
+dfxy <- as.data.frame(cbind(pxy$V1,pxy$V2))
+
+chocho <- SpatialPointsDataFrame(dfxy,pxy$observation)
+cAg <- aggregate(chocho, by = Polyclust, FUN = length)
+
+
+
+con2<-contour(gpw4_2010_im,nlevels=100)
+Dsg2<-as(gpw4_2010_im,"SpatialGridDataFrame")
+Dim2 <- as.image.SpatialGridDataFrame(Dsg2)  # convert again to an image
+Dcl2 <- contourLines(Dim2, nlevels = 200)  # create contour object - change 8 for more/fewer levels
+SLDF2 <- ContourLines2SLDF(Dcl2) # convert to SpatialLinesDataFrame
+#plot(SLDF2, col = terrain.colors(100))
+as(SpatialPoints(SLDF2), "ppp")
+xxx2 <- SLDF2[-c(1,3,4), ]
+class(xxx2@lines[[1]])
+class(xxx2)
+Polyclust2 <- gPolygonize(xxx2)
+#plot(Polyclust2)
+gas2 <- gArea(Polyclust2, byid = T)
+Polyclust2 <- SpatialPolygonsDataFrame(Polyclust2, data = data.frame(gas2), match.ID = F)
+#plot(Polyclust2)
+
+
+
+
+plot.new()
+plot(Dens, main = "West Africa (Lovelace)")
+# plot(lnd, border = "grey", lwd = 2, add = T)
+plot(SLDF, col = terrain.colors(8), add = T)
+
+quartz()
+plot(log(gpw4_2010_im), main = "")
+# plot(lnd, border = "grey", lwd = 2, add = T)
+plot(SLDF2, col = terrain.colors(8), add = T)
+points(point)
+
+
+list<-lapply(region_shp@polygons,function(i) {i@Polygons[[1]]@coords})
+m<-matrix(ncol=2)
+m<-rbind(m,list[[3]])
+df<-as.data.frame(list)
+
+x<-coordinates(region_shp)
+
+for(i in 1:length(list)){
+  m<-rbind(m,list[[i]])
+}
+
+
+m2<-m[-1,]
+save(m2,file="m2.RData")
+cent<-gCentroid(region_shp,byid = T)
+
+
+coords<-cent@coords
+
+x<-rep(1:230400,each=5)
+y<-rep(1:230400)
+
+m1<-cbind(coords,y)
+colnames(m1)<-c("x","y","z")
+df1<-as.data.frame(m1)
+
+m2<-cbind(m2,x)
+colnames(m2)<-c("x","y","z")
+df2<-as.data.frame(m2)
+
+df3<-left_join(df2,df1,by = c("z"="z"))
+colnames(df3)<-c("x","y","id","ct_x","ct_y")
+df4<-raster2df(wp_lbr_region,marks=T)
+
+df5<-left_join(df3,df4,by=c(c("ct_x"="x"),c("ct_y"="y")))
+df5<-left_join(df3,df4,by=c("id"="cell"))
+sum(df5[,8])
+df5[,8]<-round(df5[,8],0)
+sum(df5[,8])
+
+
+for (i in 1:230400){
+  m2[(1+(5*(i-1))):(5*i),3]<-i
+}
+
+m_final<-matrix(nrow=0,ncol=3)
+for (i in 1:29340){
+  if (bong_sub_pops[i,4] > 0){
+    sub<-[(1+(5*(i-1))):(5*i),]
+    m1<-matrix(nrow=0,ncol=3)
+    while(nrow(m1) < bong_sub_pops[i,4]) {
+      m2<-matrix(nrow=100,ncol=3)
+      m2[,1]<-runif(100,max=(max(sub$long,na.rm=T)+.00000001),min = (min(sub$long,na.rm=T)-.00000001))
+      m2[,2]<-runif(100,max=(max(sub$lat,na.rm=T)+.00000001),min = (min(sub$lat,na.rm=T)-.00000001))
+      m2[,3]<-point.in.polygon(m2[,1],m2[,2],bong_sub@polygons[[1]]@Polygons[[1]]@coords[,1],bong_sub@polygons[[1]]@Polygons[[1]]@coords[,2])
+      m2<-subset(m2, m2[,3]>0)
+      m1<-rbind(m1,m2)
+      m1<-unique(m1)
+    }
+    m1<-m1[1:bong_sub_pops[i,4],]
+    m_final<-rbind(m_final,m1)
+  }
+}
+
+
+
+
+
+df3<-as.data.frame(wp_lbr_region)
+
+df2<-raster2df(wp_lbr_region,c(-8.7,-8.6,5.6,5.7),marks=T)
+ppp<-raster2ppp(wp_lbr_region,marks=T)
+plot(ppp)
+
+blueblue<-colorRampPalette(brewer.pal(9,"Blues"))(250)
+open3d()
+plot3D(wp_lbr2, col = blueblue)
+
+open3d()
+plot3D(wp_lbr3, col = blueblue)
+
+
+win <- owin( c(-9, -8.6), c(5.6, 6))
+runpt <- runifpoint(9956, win = win)
+runpt0 <- as.ppp(runpt)
+plot(runpt0, main = "Random Points Distributed within same bbox")
+
+# Pixel image 9956 persons
+wp_lbr2_im <- as.im(wp_lbr2)
+p <- rpoint(8416, f=wp_lbr2_im)
+plot(wp_lbr2_im)
+#Add cex= to change point size 
+plot(p, main = "Pixel Image with Function based on Density of Raster Map")
+rp<-raster(as.im(p))
+open3d()
+plot3D(rp, col = blueblue)
+
+quartz()
+p2 <- rpoint(8416, f=wp_lbr2_im)
+plot(p2, main = "Pixel Image with Function based on Density of Raster Map")
+rp2<-raster(as.im(p2))
+open3d()
+plot3D(rp2, col = blueblue)
+
+
+x<-mask(wp_lbr2,Polyclust)
+sum(x@data@values,na.rm=T)
+y<-mask(rp,Polyclust)
+sum(y@data@values,na.rm=T)
+z<-mask(rp2,Polyclust)
+sum(z@data@values,na.rm=T)
+
+
+sum(wp_lbr2@data@values,na.rm=T)
+
+
+
+
+
+
+
+
+# Lovelace: http://robinlovelace.net/r/2014/03/21/clustering-points-R.html
+# P=9956 persons plot from code above in world pop
+Dens <- density(p, adjust = 0.2)  # create density object
+class(Dens)  
+plot(Dens)  
+con <- contour(density(p, adjust = 0.2), nlevels=4)  # plot as contours - this is where we're heading
+Dsg <- as(Dens, "SpatialGridDataFrame")  # convert to spatial grid class
+Dim <- as.image.SpatialGridDataFrame(Dsg)  # convert again to an image
+Dcl <- contourLines(Dim, nlevels = 4)  # create contour object - change 8 for more/fewer levels
+SLDF <- ContourLines2SLDF(Dcl) # convert to SpatialLinesDataFrame
+plot(SLDF, col = terrain.colors(8))
+as(SpatialPoints(SLDF), "ppp")
+xxx <- SLDF[-c(1,3,4), ]
+class(xxx@lines[[1]])
+class(xxx)
+Polyclust <- gPolygonize(xxx)
+plot(Polyclust)
+gas <- gArea(Polyclust, byid = T)
+Polyclust <- SpatialPolygonsDataFrame(Polyclust, data = data.frame(gas), match.ID = F)
+plot(Polyclust)
+# Workaround 
+pxy <- cbind(p$x,p$y)
+pxy <- as.data.frame(pxy)
+
+pxy$observation <- 1:nrow(pxy) 
+pxy$observation <- as.data.frame(pxy$observation)
+
+dfxy <- as.data.frame(cbind(pxy$V1,pxy$V2))
+
+chocho <- SpatialPointsDataFrame(dfxy,pxy$observation)
+cAg <- aggregate(chocho, by = Polyclust, FUN = length)
+plot.new()
+plot(Dens, main = "")
+# plot(lnd, border = "grey", lwd = 2, add = T)
+plot(SLDF, col = terrain.colors(8), add = T)
+plot(cAg, col = "red", border = "white", add = T)
+
+
+# Lovelace: http://robinlovelace.net/r/2014/03/21/clustering-points-R.html
+# P=9956 persons plot from code above in world pop
+quartz()
+Dens <- density(wp_lbr3,weights=wp_lbr3$marks)  # create density object
+class(Dens)  
+plot(Dens)  
+con <- contour(density(wp_lbr3, adjust = 0.2), nlevels=4)  # plot as contours - this is where we're heading
+Dsg <- as(Dens, "SpatialGridDataFrame")  # convert to spatial grid class
+Dim <- as.image.SpatialGridDataFrame(Dsg)  # convert again to an image
+Dcl <- contourLines(Dim, nlevels = 4)  # create contour object - change 8 for more/fewer levels
+SLDF <- ContourLines2SLDF(Dcl) # convert to SpatialLinesDataFrame
+plot(SLDF, col = terrain.colors(8))
+xxx <- SLDF[-c(1,3,4), ]
+class(xxx@lines[[1]])
+class(xxx)
+Polyclust <- gPolygonize(xxx)
+plot(Polyclust)
+gas <- gArea(Polyclust, byid = F)
+Polyclust <- SpatialPolygonsDataFrame(Polyclust, data = data.frame(gas), match.ID = F)
+plot(Polyclust)
+# Workaround 
+pxy <- cbind(wp_lbr3$x,wp_lbr3$y)
+pxy <- as.data.frame(pxy)
+
+pxy$observation <- 1:nrow(pxy) 
+pxy$observation <- as.data.frame(pxy$observation)
+
+dfxy <- as.data.frame(cbind(pxy$V1,pxy$V2))
+
+chocho <- SpatialPointsDataFrame(dfxy,pxy$observation)
+cAg <- aggregate(chocho, by = Polyclust, FUN = length)
+plot.new()
+plot(Dens, main = "")
+# plot(lnd, border = "grey", lwd = 2, add = T)
+plot(SLDF, col = terrain.colors(8), add = T)
+plot(cAg, col = "red", border = "white", add = T)
+
+
+# Lovelace: http://robinlovelace.net/r/2014/03/21/clustering-points-R.html
+# P=9956 persons plot from code above in world pop
+quartz()
+Dens <- density(p2, adjust = 0.2)  # create density object
+class(Dens)  
+plot(Dens)  
+con <- contour(density(p2, adjust = 0.2), nlevels=4)  # plot as contours - this is where we're heading
+Dsg <- as(Dens, "SpatialGridDataFrame")  # convert to spatial grid class
+Dim <- as.image.SpatialGridDataFrame(Dsg)  # convert again to an image
+Dcl <- contourLines(Dim, nlevels = 4)  # create contour object - change 8 for more/fewer levels
+SLDF <- ContourLines2SLDF(Dcl) # convert to SpatialLinesDataFrame
+plot(SLDF, col = terrain.colors(8))
+as(SpatialPoints(SLDF), "ppp")
+xxx <- SLDF[-c(1,3,4), ]
+Polyclust <- gPolygonize(xxx)
+plot(Polyclust)
+gas <- gArea(Polyclust, byid = T)
+Polyclust <- SpatialPolygonsDataFrame(Polyclust, data = data.frame(gas), match.ID = F)
+plot(Polyclust)
+# Workaround 
+pxy <- cbind(p2$x,p2$y)
+pxy <- as.data.frame(p2xy)
+
+p2xy$observation <- 1:nrow(p2xy) 
+p2xy$observation <- as.data.frame(p2xy$observation)
+
+dfxy <- as.data.frame(cbind(p2xy$V1,p2xy$V2))
+
+chocho <- SpatialPointsDataFrame(dfxy,p2xy$observation)
+cAg <- aggregate(chocho, by = Polyclust, FUN = length)
+plot.new()
+plot(Dens, main = "")
+# plot(lnd, border = "grey", lwd = 2, add = T)
+plot(SLDF, col = terrain.colors(8), add = T)
+plot(cAg, col = "red", border = "white", add = T)
+
+quartz()
+wp_lbr2<-wp_lbr>0
+plot(wp_lbr2)
+x<-matrix(getValues(wp_lbr))
+plot(log(wp_lbr))
 gpw4_2010
 
-gplot(test)+geom_tile(aes(fill=value))+geom_map(data=lbr2_f,map=lbr2_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)
+gplot(wp_lbr)+geom_tile(aes(fill=value))+geom_map(data=lbr2_f,map=lbr2_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)
 
 
 proj4string(test)
@@ -271,17 +695,13 @@ gpw4_2010<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2010.tif
 gpw4_2010<-crop(gpw4_2010,extent(lbr))
 gpw4_2010<-mask(gpw4_2010,lbr)
 
-load("high_low.RData")
 load("high_low_lbr.RData")
+load("high_low_lbr_med.RData")
 
 
 # Quick Plotting
 
   # means
-  quartz()
-  ggplot()+geom_tile(data=high_low,aes(x=long,y=lat,fill=factor(score)),cex=.8)+
-    geom_map(data=lbr_dist_f,map=lbr_dist_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)
-  
   quartz()
   ggplot()+geom_tile(data=high_low_lbr,aes(x=long,y=lat,fill=score),cex=.8)+
     geom_map(data=lbr_dist_f,map=lbr_dist_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)+
@@ -665,7 +1085,7 @@ smooth_bong_sub_f<-smooth(ppp_bong_sub_f)
 
 #### SPATSTAT EXPERIMENT ####
 
-
+quartz()
 plot.new()
 par(mfrow=c(1,3))
 rand_num<-sample(1:100,36,replace=T)
@@ -688,10 +1108,11 @@ summary(dens1)
 dens1[ppp_total]
 plot(dens1)
 plot(quadratcount(ppp_total,nx=6,ny=6))
+intensity(ppp_total)
 intens<-intensity(quadratcount(ppp_total,nx=6,ny=6),image=T)
 plot(intens)
 
-
+summary(ppp_total)
 
 ####
 #### 10% SAMPLE ####
