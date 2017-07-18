@@ -691,12 +691,12 @@ z<-z[which(z>0)]
 
 
 # Data
-gpw4_2010<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2010.tif")
+gpw4_2010<-raster("~/GoogleDrive/LiberiaProject/LBR-GPW4/gpw-v4-population-count_2010.tif")
 gpw4_2010<-crop(gpw4_2010,extent(lbr))
 gpw4_2010<-mask(gpw4_2010,lbr)
 
-load("high_low_lbr.RData")
-load("high_low_lbr_med.RData")
+load("RData/rand/high_low_lbr.RData")
+load("RData/rand/high_low_lbr_med.RData")
 
 
 # Quick Plotting
@@ -704,19 +704,33 @@ load("high_low_lbr_med.RData")
   # means
   quartz()
   ggplot()+geom_tile(data=high_low_lbr,aes(x=long,y=lat,fill=score),cex=.8)+
-    geom_map(data=lbr_dist_f,map=lbr_dist_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)+
-    ggtitle("High Low with Means")
+    #geom_map(data=lbr_dist_f,map=lbr_dist_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)+
+    ggtitle("High Low with Means")+
+    theme(text = element_text(color = "white"),
+          rect = element_rect(fill = "grey35", color = "grey35"),
+          plot.background = element_rect(fill = "grey35", color = "grey35"),
+          panel.background = element_rect(fill = "grey35", color = "grey35"),
+          plot.title = element_text(),
+          panel.grid = element_blank(),
+          panel.border = element_blank(),
+          axis.text = element_blank(),
+          axis.title = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = c(.1,.2))
   
   quartz()
-  raster1<-rasterFromXYZ(high_low_lbr[,c(3,4,9)])
-  gplot(raster1)+geom_tile(aes(fill=factor(value)))  
+  raster1<-rasterFromXYZ(high_low_lbr[,c(3,4,10)])
+  gplot(raster1)+geom_tile(aes(fill=value))+ggtitle("High Low Clustering with Means")+theme(plot.title = element_text(hjust = 0.5))
   
   # medians
   quartz()
   ggplot()+geom_tile(data=high_low_lbr_med,aes(x=long,y=lat,fill=score),cex=.8)+
     geom_map(data=lbr_dist_f,map=lbr_dist_f,aes(x=long,y=lat,map_id=id),alpha=0,col="black",cex=.1)+
     ggtitle("High Low with Medians")
-
+  
+  raster2<-rasterFromXYZ(high_low_lbr_med[,c(3,4,10)])
+  gplot(raster2)+geom_tile(aes(fill=value))+ggtitle("High Low Clustering with Medians")+theme(plot.title = element_text(hjust = 0.5))
+  
 
 # Test Writing Function
 x<-seq(0,100)

@@ -1,6 +1,6 @@
-rm(list=ls())
-setwd("~/GitHub/Liberia")
 
+#rm(list=ls())
+setwd("~/GitHub/Liberia")
 
 library(rgdal)
 library(dplyr)
@@ -22,6 +22,9 @@ library(plot3Drgl)
 library(akima)
 library(SpaDES)
 library(rmapshaper)
+library(tmap)
+library(sf)
+library(igraph)
 
 source("~/Documents/R/functions.R")
 
@@ -72,8 +75,10 @@ lbr_clan_f<-fortify(lbr_clan)
 
 
 ## Import WorldPop ##
-wp_lbr<-raster("~/GoogleDrive/LiberiaProject/LBR-WP/LBR10adjv3.tif")
-proj4string(wp_lbr)
+wp_lbr_10<-raster("~/GoogleDrive/LiberiaProject/LBR-WP/LBR10adjv3.tif")
+proj4string(wp_lbr_10)
+wp_lbr_14 <- raster("~/GoogleDrive/LiberiaProject/LBR-WP/LBR14adjv1.tif")
+proj4string(wp_lbr_14)
 
 ## Import GPW4 data ##
 gpw4_2010<-raster("~/GoogleDrive/LiberiaProject/gpw-v4-population-count_2010.tif")
@@ -85,7 +90,7 @@ dsn<-"/Users/chriselsner/GoogleDrive/LiberiaProject/LBR-OSM"
 bldgs<-readOGR(dsn = "/Users/chriselsner/GoogleDrive/LiberiaProject/LBR-OSM", layer = "gis.osm_buildings_a_free_1", stringsAsFactors=FALSE, verbose=FALSE)
 proj4string(bldgs)
 
-
+#####
 ## Load final data ##
 load("RData/lbr_gpw4_data.RData")
 
@@ -102,72 +107,396 @@ load("RData/lbr_gpw4_complete.RData")
 load("RData/city_points.RData")
 
 
-# TESTING STUFF -----
+# TYLERS CODE -------
+
+# Import
+prj_lbr <- "+proj=utm +zone=29 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"
+#wp_lbr_10_utm<-projectRaster(wp_lbr_10,crs=prj_lbr)
+wp_lbr_14_utm <- projectRaster(wp_lbr_14, crs = prj_lbr)
+lbr_clan_utm <- spTransform(lbr_clan, CRS = prj_lbr)
+lbr2_utm<-spTransform(lbr2, CRS = prj_lbr)
+
+# bain singular -----
+quartz()
+plot(wp_lbr_14_utm_utm)
+plot(lbr_clan_utm, add = TRUE)
+
+bain_utm<- subset(lbr_clan_utm, CLNAME == "Bain")
+plot(bain_utm)
+
+#wpop_bain10 <- crop(wpop_lbr10, bain)
+#wp_bain_10 <- mask(wp_bain_10, bain)
+
+wp_bain_14_utm <- crop(wp_lbr_14_utm, bain_utm)
+wp_bain_14_utm <- mask(wp_bain_14_utm, bain_utm)
+
+
+# Find total pop
+
+#cellStats(wpop_lbr10, 'sum')
+#cellStats(wp_bain_10, 'sum')
+
+cellStats(wp_lbr_14_utm, 'sum')
+cellStats(wp_bain_14_utm, 'sum')
+
+lbr_clan_utm@data$SUM_TOTAL[which(lbr_clan_utm@data$CLNAME == "Bain")]
+
+
+# Analysis
+wp_bain_14_utm_im<-as.im(wp_bain_14_utm)
+
+
+pop <- floor(cellStats(wp_bain_14_utm, 'sum'))
+pop2 <- floor(cellStats(wp_bain_14_utm, 'sum')/100)
+win <- as(bain_utm,"owin")
+
+set.seed(1)
+bain_utm_ppp <- rpoint(pop, f = wp_bain_14_utm_im, win = win)
+bain_utm_ppp2 <- rpoint(pop2, f = wp_bain_14_utm_im, win = win)
+quartz()
+plot(bain_utm_ppp, cex=.03)
+plot(bain_utm_ppp2,cex=.03)
+
+
+ppl <- bw.ppl(bain_utm_ppp)
+#diggle <- bw.diggle(bain_ppp)
+
+bain_utm_dens<-density(bain_utm_ppp,sigma=ppl)
+
+Dsg <- as(bain_utm_dens, "SpatialGridDataFrame")  # convert to spatial grid class
+Dim <- as.image.SpatialGridDataFrame(Dsg)  # convert again to an image
+
+if (is.null(lvl)){
+  Dcl <- contourLines(Dim)  # create contour object
+}else{
+  Dcl <- contourLines(Dim,levels=.0006)  # create contour object
+}
+
+SLDF <- ContourLines2SLDF(Dcl, CRS(prj_lbr))
+min_lvl<-min(as.numeric(as.character(SLDF@data$level)))
+plot(SLDF)
+SLDF<-SLDF[which(SLDF@data$level==min_lvl),]
+plot(SLDF)
+PS1 <- SpatialLines2PolySet(SLDF)
+SP1 <- PolySet2SpatialPolygons(PS1, close_polys=TRUE)
+plot(SP1)
+PS2 <- SpatialPolygons2PolySet(SP1)
+SL1<-PolySet2SpatialLines(PS2)
+poly<-gPolygonize(SL1)
+ids<-1:length(poly)
+gas<-gArea(poly,byid = T)
+head(sort(gas))
+SPDF<-SpatialPolygonsDataFrame(poly,data = data.frame(ids,gas))
+vals<-extract(wp_bain_14_utm, SPDF)
+SPDF@data["totals"] <- unlist(lapply(vals, 'sum'))
+print(paste("lvl: ",min_lvl))
+SPDF
+
+x<-sapply(SPDF@polygons,function(i) length(i@Polygons))
+x
+
+y<-SPDF@polygons[[52]]
+y<-SpatialPolygons(list(y))
+y<-gUnaryUnion(y)
+SPDF@polygons[[52]]<-gUnaryUnion(SPDF@polygons[[52]]@Polygons)
+plot(SPDF)
+
+
+
+qtm(shp = SPDF, fill = "totals", fill.palette = "-Blues", format = "World_wide", fill.title="Bain \n Lowest Level of 8: 0.0005")
+
+
+
+bain_dens<-density(bain_ppp,sigma=ppl)
+LR<-scanLRTS(bain_ppp,r=2*ppl)
+ST<-scan.test(bain_ppp,r=2*ppl)
+quartz()
+plot(bain_dens)
+quartz()
+plot(LR)
+quartz()
+plot(ST)
+
+nne<-nnclean(bain_ppp,k=10)
+quartz()
+plot(nne,size=.03)
+plot.ppp(nne)
+
+
+# Bain plus ------
+bain_plus<-readOGR(dsn = "shapefiles",layer="bain_surroundings",stringsAsFactors = FALSE,verbose=FALSE)
+prj_lbr <- "+proj=utm +zone=29 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0"
+wp_lbr_14_utm <- projectRaster(wp_lbr_14, crs = prj_lbr)
+bain_plus_utm<-spTransform(bain_plus, CRS = prj_lbr)
+
+
+wp_bain_plus_14_utm <- crop(wp_lbr_14_utm, bain_plus)
+wp_bain_plus_14_utm <- mask(wp_bain_plus_14_utm, bain_plus)
+
+
+# Find total pop
+
+#cellStats(wpop_lbr10, 'sum')
+#cellStats(wp_bain_10, 'sum')
+
+#cellStats(wp_lbr_14_utm, 'sum')
+cellStats(wp_bain_plus_14_utm, 'sum')
+
+#lbr_clan_utm@data$SUM_TOTAL[which(lbr_clan_utm@data$CLNAME == "Bain")]
+
+
+
+# Analysis
+wp_bain_plus_14_utm_im<-as.im(wp_bain_plus_14_utm)
+quartz()
+plot(wp_bain_plus_14_utm)
+
+pop <- floor(cellStats(wp_bain_plus_14_utm, 'sum'))
+pop2<-floor(cellStats(wp_bain_plus_14_utm, 'sum')/10)
+win <- as(bain_plus_utm,"owin")
+
+set.seed(1)
+wp_bain_plus_14_utm_ppp <- rpoint(pop, f = wp_bain_plus_14_utm_im, win = win)
+wp_bain_plus_14_utm_ppp2 <- rpoint(pop2, f = wp_bain_plus_14_utm_im, win = win)
+quartz()
+plot(wp_bain_plus_14_utm_ppp, cex=.03)
+plot(wp_bain_plus_14_utm_ppp2, cex=.03)
+
+
+ppl <- bw.ppl(wp_bain_plus_14_utm_ppp)
+ppl
+#diggle <- bw.diggle(bain_plus_ppp)
+
+# Quick stats checking ----
+wp_bain_plus_14_utm_dens<-density(wp_bain_plus_14_utm_ppp,sigma=ppl)
+LR<-scanLRTS(wp_bain_plus_14_utm_ppp,r=2*ppl)
+ST<-scan.test(wp_bain_plus_14_utm_ppp,r=ppl)
+quartz()
+plot(wp_bain_plus_14_utm_dens)
+quartz()
+plot(LR)
+quartz()
+plot(ST,main="Scan Statistic \n r = 288.6996 ")
+
+ST_im<-as.im(ST)
+contour(ST_im,levels=50)
+
+nne<-nnclean(wp_bain_plus_14_utm_ppp,k=10)
+quartz()
+plot(nne,cols=c("red","blue"),size=.03,bg="black")
+
+plot.ppp(nne)
+feat<-nne[which(nne$marks=="feature")]
+feat<-unmark(feat)
+plot(feat,size=.03)
+feat_dens<-density(feat,sigma=ppl)
+plot(feat_dens)
+x<-contour(feat_dens,levels=.001)
+feat_im<-as.im(feat)
+plot(feat_im)
+contour(feat_im,levels=20)
+plot(x)
+ll_feat_dens<-lovelace(feat_dens)
+# SOLLVING ISSUE OF THE INNACURATE POLYGONS -----
+
+ll_bain_plus_im<-lovelace(wp_bain_plus_14_utm)
+
+Dsg <- as(feat_dens, "SpatialGridDataFrame")  # convert to spatial grid class
+Dim <- as.image.SpatialGridDataFrame(Dsg)  # convert again to an image
+
+if (is.null(lvl)){
+  Dcl <- contourLines(Dim)  # create contour object
+}else{
+  Dcl <- contourLines(Dim,levels=.0002)  # create contour object
+}
+
+SLDF <- ContourLines2SLDF(Dcl, CRS(prj_lbr))
+min_lvl<-min(as.numeric(as.character(SLDF@data$level)))
+plot(SLDF)
+SLDF<-SLDF[which(SLDF@data$level==min_lvl),]
+plot(SLDF)
+PS1 <- SpatialLines2PolySet(SLDF)
+SP1 <- PolySet2SpatialPolygons(PS1, close_polys=TRUE)
+plot(SP1)
+PS2 <- SpatialPolygons2PolySet(SP1)
+SL1<-PolySet2SpatialLines(PS2)
+poly<-gPolygonize(SL1)
+ids<-1:length(poly)
+gas<-gArea(poly,byid = T)
+head(sort(gas))
+SPDF<-SpatialPolygonsDataFrame(poly,data = data.frame(ids,gas))
+vals<-extract(wp_bain_plus_14_utm, SPDF)
+SPDF@data["totals"] <- unlist(lapply(vals, 'sum'))
+print(paste("lvl: ",min_lvl))
+SPDF
+head(sort(ll_bain_plus_im@data$totals),n=20)
+
+
+
+ll_bain_plus_ppp<-lovelace(wp_bain_plus_14_utm,use_ppp = T,win=bain_plus_utm)
+sort(ll_bain_plus_ppp@data$totals)
+sum(ll_bain_plus_ppp$totals)
 
 quartz()
-blueblue<-colorRampPalette(brewer.pal(9,"Blues"))(250)
+plot(wp_bain_plus_14_utm,main="contours from raster")
+plot(ll_bain_plus_im,add=T)
+sum(ll_bain_plus_im@data$totals, na.rm = TRUE) / sum(wp_bain_plus_14_utm@data@values,na.rm=T)
 
-bain<-lbr_clan[which(lbr_clan@data$CLNAME=="Bain"),]
-plot(bain)
-wp_bain<-crop(wp_lbr,bain)
-wp_bain<-mask(wp_bain, bain)
+quartz()
+plot(wp_bain_plus_14_utm,main="contours from ppp")
+plot(ll_bain_plus_ppp,add=T)
+sum(ll_bain_plus_ppp@data$totals, na.rm = TRUE) / sum(wp_bain_plus_14_utm@data@values,na.rm=T)
 
-pop<-sum(wp_bain@data@values,na.rm = T)
 
-wp_bain_im <- as.im(wp_bain)
-plot(wp_bain_im)
-class(wp_bain_im)
-class(wp_lbr)
+df<-raster2df(wp_bain_plus_14_utm)
+plot(ecdf(df$vals))
+###
+# Modified ECDF method ------
 
-bain_win<- as(bain,"owin")
-bain_ppp <- rpoint(pop, f=wp_bain_im,bain_win)
-bain_ppp_im<-as.im(bain_ppp)
-plot(bain_ppp_im)
-bain_dens<-density(bain_ppp,sigma=bw.ppl)
-plot(bain_dens)
-summary(bain_ppp_im)
-summary(bain_dens)
+load("wp_lbr_10_utm_msk.RData")
+wp_lbr_10_utm_msk<-mask(wp_lbr_10_utm,lbr2_utm)
+save(wp_lbr_10_utm_msk,file="wp_lbr_10_utm_msk.RData")
+plot(wp_lbr_10_utm_msk)
 
-bain_cont<-contour(wp_bain_im,add=T)
+y<-floor(cellStats(wp_lbr_10_utm_msk,"sum"))
+x<-cellStats(wp_lbr_10_utm_msk,"max")
+plot(x=1,xlim=c(0,x),ylim=c(0,y))
 
-# Clustering Funnction -----
-contourclust<-function(pobj,){ # pobj = point pobject (raster, im, ppp)
-  if (class(pobj) == "raster"){
-    pobj<-as.im(pobj)
-  }else if (class(pobj) == "im"){
+vals<-getValues(wp_lbr_10_utm_msk)
+vals<-na.omit(vals)
+vals<-as.vector(vals)
+unq<-unique(vals)
+z<-sapply(1:100,function(i) unlist(list(vals[i],sum(vals[which(vals<=vals[i])]))))
+z<-t(z)
+a<-sapply(1:5000,function(i) unlist(list(unq[i],sum(vals[which(vals<=unq[i])]))))
+a<-t(a)
+quartz()
+plot(x=z[,1],y=z[,2],xlim=c(0,x),ylim=c(0,y))
+plot(x=a[,1],y=a[,2],xlim=c(0,x),ylim=c(0,y))#,add=T)
+
+plot(ecdf(wp_lbr_10_utm_msk))
+
+##
+
+
+# Network Analyisis Clustering ------
+
+nodeclust <- function (df, current_point, r){
+  
+  circle <- shape.circle (c (current_point[,1], current_point[,2]), r = r)
+  last_point <- current_point
+  df <- df[which (df[,3] != current_point[,3]),]
+  point_set <- df[which (point.in.polygon (df[,1], df[,2], circle$x, circle$y) > 0),]
+  
+  if (nrow (point_set) == 0){
+    return (current_point)
     
+  }else{
+    df <- subset(df, !(df[,3] %in% point_set[,3]))
+    branch <- unique(bind_rows(lapply (1:nrow (point_set), function (i) {nodeclust (df, point_set[i,], r)})))
+    cluster<-rbind (last_point, branch)
+    return (cluster)
   }
 }
-Dsg <- as(wp_bain_im, "SpatialGridDataFrame")  # convert to spatial grid class
-Dim <- as.image.SpatialGridDataFrame(Dsg)  # convert again to an image
-Dcl <- contourLines(Dim, nlevels = 100)  # create contour object - change 8 for more/fewer levels
-SLDF <- ContourLines2SLDF(Dcl) # convert to SpatialLinesDataFrame
-plot(SLDF, col = terrain.colors(100))
-as(SpatialPoints(SLDF), "ppp")
-xxx <- SLDF[-c(1,3,4), ]
-class(xxx@lines[[1]])
-class(xxx)
-Polyclust <- gPolygonize(xxx)
-plot(Polyclust)
-gas <- gArea(Polyclust, byid = T)
-Polyclust <- SpatialPolygonsDataFrame(Polyclust, data = data.frame(gas), match.ID = F)
-plot(Polyclust)
-# Workaround 
-pxy <- cbind(p$x,p$y)
-pxy <- as.data.frame(pxy)
 
-pxy$observation <- 1:nrow(pxy) 
-pxy$observation <- as.data.frame(pxy$observation)
+ncluster <- function(df, r){
+  clusts <- list()
+  i <- 1
+  while (i <= nrow (df)){
+    clust <- nodeclust (df, df[1,], r)
+    df <- subset(df, !(df[,3] %in% clust[,3]))
+    clusts <- c(clusts, list(clust))
+    i <- 1
+  }
+  return (clusts)
+}
 
-dfxy <- as.data.frame(cbind(pxy$V1,pxy$V2))
+install.packages("progress")
+library(progress)
 
-chocho <- SpatialPointsDataFrame(dfxy,pxy$observation)
-cAg <- aggregate(chocho, by = Polyclust, FUN = length)
+win<-owin(c(0,10),c(0,10))
+f<-function(x,y){x+y}
+set.seed(5)
+box<-rpoint(1000,f=f,win=win)
+quartz()
+plot(box)
+df<-as.data.frame(box)
+df$id<-seq(1,nrow(df))
+plot(df$x,df$y)
+
+clusts <- ncluster(df,.3)
+
+bounds <- lapply (1:length(clusts), function(i) {lapply (1:nrow (clusts[[i]]), function(j) {shape.circle (c (clusts[[i]][j,1], clusts[[i]][j,2]), .1)})})
+
+color = grDevices::colors()[grep('gr(a|e)y', grDevices::colors(), invert = T)]
+qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
+col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
+pie(rep(1,17), col=sample(col_vector, 17))
+cols<-sample(col_vector, 17)
+
+plot(df$x,df$y)
+for (i in 1:length(bounds)){
+  for (j in 1:length(bounds[[i]])){
+    lines(bounds[[i]][[j]],col = cols[i])
+  }
+}
+#
+plot(wp_bain_plus_14_utm_ppp,cex=.03)
+bain_plus_df<-as.data.frame(wp_bain_plus_14_utm_ppp)
+bain_plus_df$id<-seq(1,nrow(bain_plus_df))
+plot(bain_plus_df,cex=.03)
+bain_plus_clust<-ncluster(bain_plus_df,10)
+
+bain_utm_ppp<-rpoint(floor((cellStats(wp_bain_14_utm, 'sum')))/10, f = wp_bain_14_utm_im, win=win)
+plot(bain_utm_ppp,cex=.03)
+bain_df<-as.data.frame(bain_utm_ppp)
+bain_df$id<-seq(1,nrow(bain_df))
+plot(bain_df$x,bain_df$y,cex=.03)
+bain_clust<-ncluster(bain_df,70)
+
+len<-sapply(1:length(bain_clust), function(i) nrow(bain_clust[[i]]))
+max(len)
+
+clust1<-bain_clust[which]
+
+total <- 20
+# create progress bar
+pb <- txtProgressBar(min = 0, max = total, style = 3)
+for(i in 1:total){
+  Sys.sleep(0.1)
+  # update progress bar
+  setTxtProgressBar(pb, i)
+}
+close(pb)
 
 
-#Add cex= to change point size 
-plot(p, main = "Pixel Image with Function based on Density of Raster Map",cex=.03)
-rp<-raster(as.im(p))
-open3d()
-plot3D(rp, col = blueblue)
+# Try #2: Network Clustering ----
+win<-owin(c(0,10),c(0,10))
+f<-function(x,y){x+y}
+set.seed(5)
+box<-rpoint(1000,f=f,win=win)
+quartz()
+plot(box)
+df<-as.data.frame(box)
+df$id<-seq(1,nrow(df))
+plot(df$x,df$y,cex=.1)
 
+find_neighbors<-function(df, r){
+  circles <- lapply (1:nrow (df), function(i) {shape.circle (c (df$x[i], df$y[i]), r = r)})
+  point_sets <- lapply (1:length (circles), function(i) {point.in.polygon (df[,1], df[,2], circles[[i]]$x, circles[[i]]$y)})
+  adj_m <- matrix(unlist (point_sets), ncol = nrow (df), byrow = TRUE)
+  diag(adj_m) <- 0
+  adj_m
+}
+
+l<-layout(graph)
+
+
+adj_m <- find_neighbors (df, .5)
+graph<-graph_from_adjacency_matrix(adj_m)
+l <- as.matrix(df[,1:2])
+quartz()
+plot(graph, vertex.size = 1, vertex.color = "black", vertex.label= NA, edge.arrow.size = .1, axes = TRUE, layout = l, xlim = c(0,10), ylim = c(0,10), rescale = FALSE)
+cluster_optimal(graph)
+
+point_sets2[[1]][[1]]
