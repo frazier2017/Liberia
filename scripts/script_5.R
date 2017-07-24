@@ -1,5 +1,5 @@
 
-#rm(list=ls())
+rm(list=ls())
 setwd("~/GitHub/Liberia")
 
 library(rgdal)
@@ -447,32 +447,54 @@ bain_plus_df$id<-seq(1,nrow(bain_plus_df))
 plot(bain_plus_df,cex=.03)
 bain_plus_clust<-ncluster(bain_plus_df,10)
 
-bain_utm_ppp<-rpoint(floor((cellStats(wp_bain_14_utm, 'sum')))/10, f = wp_bain_14_utm_im, win=win)
+bain_utm_ppp<-rpoint(floor((cellStats(wp_bain_14_utm, 'sum'))), f = wp_bain_14_utm_im, win=win)
 plot(bain_utm_ppp,cex=.03)
 bain_df<-as.data.frame(bain_utm_ppp)
 bain_df$id<-seq(1,nrow(bain_df))
 plot(bain_df$x,bain_df$y,cex=.03)
 bain_clust<-ncluster(bain_df,70)
 
-len<-sapply(1:length(bain_clust), function(i) nrow(bain_clust[[i]]))
+adj_m<-find_neighbors(bain_df,20)
+graph <- graph_from_adjacency_matrix(adj_m, mode = "undirected")
+edges <- get.edgelist(graph)
+links <- data.frame (id = unique (unlist (list (edges[,1],edges[,2]))), group = clusters (graph)$membership)
+links <- split(links$id,links$group)
+graph2 <- graph_from_adjacency_matrix(adj_m, mode = "undirected", diag = FALSE)
+l <- as.matrix(bain_df[,1:2])
+plot(graph2, vertex.size = 1, vertex.color = "black", vertex.label= NA, edge.arrow.size = .1, 
+     axes = TRUE, layout = l, xlim = c(floor (min (l[,1] - 1)), floor (max (l[,1] + 1))), ylim = c(floor (min (l[,2] - 1)), floor (max (l[,2] + 1))), rescale = FALSE, 
+     mark.groups = links, mark.shape = 1)
+
+bain_gclust<-graphclust(bain_df, r=20)
+
+len<-sapply(1:length(links), function(i) length(links[[i]]))
 max(len)
 
-clust1<-bain_clust[which]
+bain_gclust2<-bain_df[which(bain_df$id %in% bain_gclust[[2]]),]
+M<-as.matrix(bain_gclust2)
+points(M)
+shell<-convex_hull(M[,1:2])
+shell_df <- df[which(df$id %in% shell),]
+points(shell$rescoords,col="purple")
+polygon(shell$rescoords)
 
-total <- 20
-# create progress bar
-pb <- txtProgressBar(min = 0, max = total, style = 3)
-for(i in 1:total){
-  Sys.sleep(0.1)
-  # update progress bar
-  setTxtProgressBar(pb, i)
-}
-close(pb)
+install.packages("alphahull")
+library(alphahull)
 
+ahull_shell<-ahull(M,alpha=400)
+plot(ahull_shell, col = c(6, rep(1, 5)), xlab = "x-coordinate", ylab = "y-coordinate")
+
+n<-300
+theta<-runif(n,0,2*pi)
+r<-sqrt(runif(n,0.25^2,0.5^2))
+x<-cbind(0.5+r*cos(theta),0.5+r*sin(theta))
+alpha <- 0.15
+alphahull <- ahull(x, alpha = alpha)
+plot(alphahull, col = c(6, rep(1, 5)), xlab = "x-coordinate", ylab = "y-coordinate", main = expression(paste(alpha, "-hull")))
 
 # Try #2: Network Clustering ----
 win<-owin(c(0,10),c(0,10))
-f<-function(x,y){x+y}
+f<-function(x,y){sqrt(x) + x^2 + y}
 set.seed(5)
 box<-rpoint(1000,f=f,win=win)
 quartz()
@@ -480,23 +502,65 @@ plot(box)
 df<-as.data.frame(box)
 df$id<-seq(1,nrow(df))
 plot(df$x,df$y,cex=.1)
+for (i in 1:100){
+  lines(circles[[i]],col="red")
+}
+
+
+df<-as.data.frame(rpoint(10000))
+system.time (circles <- lapply (1:nrow (df), function(i) {shape.circle (c (df$x[i], df$y[i]), r = .1)}))
+
+x<-df$x
+y<-df$y
+len<-nrow(df)
+system.time(circles <- lapply (1:len, function(i) {shape.circle (c (x[i], y[i]), r =.1)}))
+
+system.time(point_sets <- lapply (1:len, function(i) {point.in.polygon (x, y, circles[[i]]$x, circles[[i]]$y, mode.checked = TRUE)}))
+
+system.time(adj_m <- matrix(unlist (point_sets), ncol = len, byrow = TRUE))
 
 find_neighbors<-function(df, r){
-  circles <- lapply (1:nrow (df), function(i) {shape.circle (c (df$x[i], df$y[i]), r = r)})
-  point_sets <- lapply (1:length (circles), function(i) {point.in.polygon (df[,1], df[,2], circles[[i]]$x, circles[[i]]$y)})
-  adj_m <- matrix(unlist (point_sets), ncol = nrow (df), byrow = TRUE)
-  diag(adj_m) <- 0
+  x<-df$x
+  y<-df$y
+  len<-nrow(df)
+  circles <- lapply (1:len, function(i) {shape.circle (c (x[i], y[i]), r = r)})
+  point_sets <- lapply (1:len, function(i) {point.in.polygon (x, y, circles[[i]]$x, circles[[i]]$y, mode.checked = TRUE)})
+  adj_m <- matrix(unlist (point_sets), ncol = len, byrow = TRUE)
+  #diag(adj_m) <- 0
   adj_m
 }
 
-l<-layout(graph)
+x<-find_neighbors(df,.1)
+
+graphclust <- function (df, r){
+  adj_m <- find_neighbors (df, r)
+  graph <- graph_from_adjacency_matrix(adj_m, mode = "undirected")
+  edges <- get.edgelist(graph)
+  links <- data.frame (id = unique (unlist (list (edges[,1],edges[,2]))), group = clusters (graph)$membership)
+  links <- split(links$id,links$group)
+  #graph2 <- graph_from_adjacency_matrix(adj_m, mode = "undirected", diag = FALSE)
+  l <- as.matrix(df[,c("x","y")])
+  #plot(graph2, vertex.size = 1, vertex.color = "black", vertex.label= NA, edge.arrow.size = .1, 
+  #     axes = TRUE, layout = l, xlim = c(floor (min (l[,1] - 1)), floor (max (l[,1] + 1))), ylim = c(floor (min (l[,2] - 1)), floor (max (l[,2] + 1))), rescale = FALSE, 
+  #     mark.groups = links, mark.shape = 1)
+  return (links)
+}
+
+test <- graphclust (df, .5)
+
+test2<-df[which(df$id %in% test[[1]]),]
+M<-as.matrix(test2)
+points(M)
+shell<-convex_hull(M[,1:2])
+shell_df <- df[which(df$id %in% shell),]
+points(shell$rescoords,col="purple")
+polygon(shell$rescoords)
+
+install.packages("alphahull")
+library(alphahull)
+
+ahul
+
+rm()
 
 
-adj_m <- find_neighbors (df, .5)
-graph<-graph_from_adjacency_matrix(adj_m)
-l <- as.matrix(df[,1:2])
-quartz()
-plot(graph, vertex.size = 1, vertex.color = "black", vertex.label= NA, edge.arrow.size = .1, axes = TRUE, layout = l, xlim = c(0,10), ylim = c(0,10), rescale = FALSE)
-cluster_optimal(graph)
-
-point_sets2[[1]][[1]]
